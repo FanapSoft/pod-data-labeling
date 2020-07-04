@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AssetTargetFallback>$(AssetTargetFallback);portable-net45+win8+wp8+wpa81;</AssetTargetFallback>
+    <AssemblyName>Fanap.DataLabeling.Migrator</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <PackageId>Fanap.DataLabeling.Migrator</PackageId>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Update="appsettings.json;log4net.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Abp.Castle.Log4Net" Version="5.9.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Fanap.DataLabeling.Core\Fanap.DataLabeling.Core.csproj" />
+    <ProjectReference Include="..\Fanap.DataLabeling.EntityFrameworkCore\Fanap.DataLabeling.EntityFrameworkCore.csproj" />
+  </ItemGroup>
+</Project>
