@@ -5,6 +5,7 @@ using Fanap.DataLabeling.Authorization.Users;
 using Fanap.DataLabeling.MultiTenancy;
 using Fanap.DataLabeling.Datasets;
 using Fanap.DataLabeling.Labels;
+using Fanap.DataLabeling.Pod;
 
 namespace Fanap.DataLabeling.EntityFrameworkCore
 {
@@ -12,6 +13,7 @@ namespace Fanap.DataLabeling.EntityFrameworkCore
     {
         /* Define a DbSet for each entity of the application */
         DbSet<Dataset> Datasets { get; set; }        
+        DbSet<ExternalToken> ExternalTokens { get; set; }        
         DbSet<DatasetItem> DatasetItems { get; set; }        
         DbSet<Label> Labels { get; set; }        
         DbSet<DatasetItemLabel> DatasetItemLabels { get; set; }        
