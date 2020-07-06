@@ -25,18 +25,15 @@ namespace Fanap.DataLabeling.Clients.Pod
         public const string PodHttpClientName = "PodHttpClient";
         private readonly ISettingManager settingManager;
         private readonly IHttpClientFactory _clientFactory;
-        private readonly IAccessTokenManagerBase _accessTokenManagerBase;
         private readonly IMapper _mapper;
 
         public PodClient(
             ISettingManager settingManager,
             IHttpClientFactory clientFactory,
-            IAccessTokenManagerBase accessTokenManagerBase,
             IMapper mapper)
         {
             this.settingManager = settingManager;
             _clientFactory = clientFactory;
-            _accessTokenManagerBase = accessTokenManagerBase;
             _mapper = mapper;
         }
 

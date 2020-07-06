@@ -29,21 +29,18 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
         private readonly IRepository<User, long> userRepo;
         private readonly IPodClient _service;
         private readonly IJwtCreator _jwtCreator;
-        private readonly IPodClient _podClient;
         public PodAuthenticationController(
             IRepository<ExternalToken> externalTokensRepo,
             UserManager userManager,
             IRepository<User, long> userRepo,
             IPodClient service,
-            IJwtCreator jwtCreator,
-            IPodClient podClient)
+            IJwtCreator jwtCreator)
         {
             this.externalTokensRepo = externalTokensRepo;
             this.userManager = userManager;
             this.userRepo = userRepo;
             _service = service;
             _jwtCreator = jwtCreator;
-            _podClient = podClient;
         }
 
         [HttpGet("")]
@@ -51,7 +48,7 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
         {
             var uri = SettingManager.GetSettingValue(AppSettingNames.PodUri);
             var clientId = SettingManager.GetSettingValue(AppSettingNames.PodClientId);
-            var callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{Request.Host}/pod/callback");
+            var callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{Request.Host}/pod/authentication/callback");
             var variables =
                 $"/authorize/?client_id={clientId}&response_type=code&redirect_uri={callbackUrl}&scope=profile";
             return Redirect($"{uri}{variables}");

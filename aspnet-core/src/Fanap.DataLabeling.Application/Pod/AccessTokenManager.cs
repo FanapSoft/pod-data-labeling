@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Fanap.DataLabeling.Authentication
 {
     // ToDo - Restructure
-    public class AccessTokenManagerBase : IAccessTokenManagerBase
+    public class AccessTokenManagerBase : IAccessTokenManager
     {
         private readonly IRepository<ExternalToken> externalTokenRepo;
         private readonly IAbpSession session;

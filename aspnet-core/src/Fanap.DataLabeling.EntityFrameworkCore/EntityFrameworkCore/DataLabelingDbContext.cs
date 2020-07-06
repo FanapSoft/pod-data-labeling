@@ -12,11 +12,11 @@ namespace Fanap.DataLabeling.EntityFrameworkCore
     public class DataLabelingDbContext : AbpZeroDbContext<Tenant, Role, User, DataLabelingDbContext>
     {
         /* Define a DbSet for each entity of the application */
-        DbSet<Dataset> Datasets { get; set; }        
-        DbSet<ExternalToken> ExternalTokens { get; set; }        
-        DbSet<DatasetItem> DatasetItems { get; set; }        
-        DbSet<Label> Labels { get; set; }        
-        DbSet<DatasetItemLabel> DatasetItemLabels { get; set; }        
+        public DbSet<Dataset> Datasets { get; set; }
+        public DbSet<ExternalToken> ExternalTokens { get; set; }
+        public DbSet<DatasetItem> DatasetItems { get; set; }        
+        public DbSet<Label> Labels { get; set; }        
+        public DbSet<DatasetItemLabel> DatasetItemLabels { get; set; }        
         public DataLabelingDbContext(DbContextOptions<DataLabelingDbContext> options)
             : base(options)
         {
