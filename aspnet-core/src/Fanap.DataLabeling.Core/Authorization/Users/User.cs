@@ -7,6 +7,10 @@ namespace Fanap.DataLabeling.Authorization.Users
 {
     public class User : AbpUser<User>
     {
+
+        public long PodUserId { get; set; }
+        public bool IsImported { get; set; }
+
         public const string DefaultPassword = "123qwe";
 
         public static string CreateRandomPassword()
