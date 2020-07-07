@@ -55,13 +55,13 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
         }
 
         [HttpGet("callback")]
-        public async Task<IActionResult> Callback(string code)
+        public async Task<LoginResponseDto> Callback(string code)
         {
             try
             {
                 Logger.Info($"{nameof(code)} : {code}");
 
-                var callbackUrl = $"{Request.Scheme}://{Request.Host}/pod/callback";
+                var callbackUrl = $"{Request.Scheme}://{Request.Host}/pod/authentication/callback";
                 var podToken = await _service.GetTokenAsync(callbackUrl, code);
 
                 Logger.Info($"{nameof(podToken.AccessToken)} : {podToken.AccessToken}");
@@ -89,7 +89,7 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
                     Username = user.UserName,
                     CellphoneNumber = user.PhoneNumber,
                     IndividualUserPhone = phone,
-                    Token = _jwtCreator.Create(user, podToken.AccessToken, ssoId)
+                    Token = podToken.AccessToken
                 };
 
                 externalTokensRepo.Insert(new ExternalToken
@@ -101,9 +101,7 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
                     RefreshToken = podToken.RefreshToken
                 });
 
-                var base64Token = Base64Uilities.Base64Encode(JsonConvert.SerializeObject(loginResponse));
-                ViewData["Result"] = base64Token;
-                return View();
+                return loginResponse;
             }
             catch (Exception e)
             {
@@ -117,17 +115,18 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
         {
             var user = new User
             {
-                EmailAddress = profileInfo.Email,
+                EmailAddress = string.IsNullOrEmpty(profileInfo.Email) ? $"{profileInfo.Username}@pod.login" : profileInfo.Email,
                 Name = profileInfo.FirstName,
                 Surname = profileInfo.LastName,
                 PodUserId = profileInfo.UserId,
                 UserName = profileInfo.Username,
                 PhoneNumber = profileInfo.CellphoneNumber,
                 IsPhoneNumberConfirmed = true,
-                IsImported = true,
+                IsEmailConfirmed = false,
+                IsImported = true
             };
 
-            var res = await userManager.CreateAsync(user);
+            var res = await userManager.CreateAsync(user, "123qwe@QWE");
             if (!res.Succeeded)
             {
                 Logger.Error(string.Join(',', res.Errors.Select(ff => ff.Description)));
