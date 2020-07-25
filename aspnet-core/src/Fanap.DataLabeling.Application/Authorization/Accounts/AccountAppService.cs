@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Abp.Application.Services;
 using Abp.Configuration;
 using Abp.Zero.Configuration;
 using Fanap.DataLabeling.Authorization.Accounts.Dto;
@@ -6,6 +7,7 @@ using Fanap.DataLabeling.Authorization.Users;
 
 namespace Fanap.DataLabeling.Authorization.Accounts
 {
+    [RemoteService(IsEnabled = false)]
     public class AccountAppService : DataLabelingAppServiceBase, IAccountAppService
     {
         // from: http://regexlib.com/REDetails.aspx?regexp_id=1923

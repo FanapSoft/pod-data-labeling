@@ -25,6 +25,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Fanap.DataLabeling.Users
 {
     [AbpAuthorize(PermissionNames.Pages_Users)]
+    [RemoteService(IsEnabled = false)]
     public class UserAppService : AsyncCrudAppService<User, UserDto, long, PagedUserResultRequestDto, CreateUserDto, UserDto>, IUserAppService
     {
         private readonly UserManager _userManager;

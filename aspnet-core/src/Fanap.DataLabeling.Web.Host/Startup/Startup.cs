@@ -18,6 +18,9 @@ using Abp.Dependency;
 using Abp.Json;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Serialization;
+using Hangfire;
+using Abp.Hangfire;
+using Fanap.DataLabeling.Authorization;
 
 namespace Fanap.DataLabeling.Web.Host.Startup
 {
@@ -36,6 +39,10 @@ namespace Fanap.DataLabeling.Web.Host.Startup
 
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
+            services.AddHangfire(config =>
+            {
+                config.UseSqlServerStorage(_appConfiguration.GetConnectionString("Default"));
+            });
             //MVC
             services.AddControllersWithViews(
                 options =>
@@ -119,6 +126,13 @@ namespace Fanap.DataLabeling.Web.Host.Startup
 
         public void Configure(IApplicationBuilder app,  ILoggerFactory loggerFactory)
         {
+            app.UseHangfireServer();
+
+            app.UseHangfireDashboard("/hangfire", new DashboardOptions
+            {
+                Authorization = new[] { new AbpHangfireAuthorizationFilter(PermissionNames.Pages_Roles) }
+            });
+
             app.UseAbp(options => { options.UseAbpRequestLocalization = false; }); // Initializes ABP framework.
 
             app.UseCors(_defaultCorsPolicyName); // Enable CORS!

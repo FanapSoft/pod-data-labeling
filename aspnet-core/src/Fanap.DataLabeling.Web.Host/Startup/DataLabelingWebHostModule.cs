@@ -3,11 +3,12 @@ using Microsoft.Extensions.Configuration;
 using Abp.Modules;
 using Abp.Reflection.Extensions;
 using Fanap.DataLabeling.Configuration;
+using Abp.Hangfire;
 
 namespace Fanap.DataLabeling.Web.Host.Startup
 {
     [DependsOn(
-       typeof(DataLabelingWebCoreModule))]
+       typeof(DataLabelingWebCoreModule), typeof(AbpHangfireAspNetCoreModule))]
     public class DataLabelingWebHostModule: AbpModule
     {
         private readonly IWebHostEnvironment _env;

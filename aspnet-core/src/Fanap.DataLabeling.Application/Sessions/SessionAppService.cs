@@ -1,10 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Abp.Application.Services;
 using Abp.Auditing;
 using Fanap.DataLabeling.Sessions.Dto;
 
 namespace Fanap.DataLabeling.Sessions
 {
+    [RemoteService(IsEnabled = false)]
+
     public class SessionAppService : DataLabelingAppServiceBase, ISessionAppService
     {
         [DisableAuditing]
