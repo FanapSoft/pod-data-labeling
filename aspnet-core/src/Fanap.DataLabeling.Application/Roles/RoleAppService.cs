@@ -18,6 +18,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Fanap.DataLabeling.Roles
 {
     [AbpAuthorize(PermissionNames.Pages_Roles)]
+    [RemoteService(IsEnabled = false)]
     public class RoleAppService : AsyncCrudAppService<Role, RoleDto, int, PagedRoleResultRequestDto, CreateRoleDto, RoleDto>, IRoleAppService
     {
         private readonly RoleManager _roleManager;

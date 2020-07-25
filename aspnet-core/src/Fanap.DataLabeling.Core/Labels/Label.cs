@@ -10,5 +10,6 @@ namespace Fanap.DataLabeling.Labels
     {
         public string Name { get; set; }
         public Dataset Dataset { get; set; }
+        public Guid DatasetId { get; set; }
     }
 }

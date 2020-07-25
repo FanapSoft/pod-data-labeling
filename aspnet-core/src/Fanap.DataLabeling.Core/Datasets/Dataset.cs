@@ -22,6 +22,7 @@ namespace Fanap.DataLabeling.Datasets
     }
     public class Dataset : FullAuditedEntity<Guid>
     {
+        public bool IsActive { get; set; }
         [MaxLength(100)]
         public string Name { get; set; }
         [MaxLength(1000)]
@@ -29,6 +30,7 @@ namespace Fanap.DataLabeling.Datasets
         public DatasetType Type { get; set; }
         public LabelingStatus LabelingStatus { get; set; }
         public ICollection<Label> PermittedLabels { get; set; }
+        public string FieldName { get; set; }
 
     }
 }
