@@ -11,7 +11,8 @@ namespace Fanap.DataLabeling.EntityFrameworkCore
 {
     public class DataLabelingDbContext : AbpZeroDbContext<Tenant, Role, User, DataLabelingDbContext>
     {
-        /* Define a DbSet for each entity of the application */
+        public DbSet<AnswerOption> AnswerOptions { get; set; }
+        public DbSet<AnswerLog> AnswerLogs { get; set; }
         public DbSet<Dataset> Datasets { get; set; }
         public DbSet<ExternalToken> ExternalTokens { get; set; }
         public DbSet<DatasetItem> DatasetItems { get; set; }        

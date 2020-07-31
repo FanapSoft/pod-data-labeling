@@ -31,8 +31,8 @@ namespace Fanap.DataLabeling.Datasets
         public bool IsGoldenData { get; set; }
         public DatasetItemType Type { get; set; }
         public Label FinalLabel { get; set; }
-        public Guid FinalLabelId { get; set; }
+        public Guid? FinalLabelId { get; set; }
         public Label Label { get; set; }
-        public Guid LabelId { get; set; }
+        public Guid? LabelId { get; set; }
     }
 }

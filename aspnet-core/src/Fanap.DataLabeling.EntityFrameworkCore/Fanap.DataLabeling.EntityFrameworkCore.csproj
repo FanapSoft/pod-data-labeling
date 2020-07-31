@@ -15,6 +15,8 @@
     <Compile Remove="Migrations\20200706082632_ExternalTokenEdited.Designer.cs" />
     <Compile Remove="Migrations\20200706083111_ExternalTokenAdded.cs" />
     <Compile Remove="Migrations\20200706083111_ExternalTokenAdded.Designer.cs" />
+    <Compile Remove="Migrations\20200728093814_MajorChange1.cs" />
+    <Compile Remove="Migrations\20200728093814_MajorChange1.Designer.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.6" />
