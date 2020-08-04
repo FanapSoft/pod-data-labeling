@@ -6,11 +6,13 @@ using Fanap.DataLabeling.MultiTenancy;
 using Fanap.DataLabeling.Datasets;
 using Fanap.DataLabeling.Labels;
 using Fanap.DataLabeling.Pod;
+using Fanap.DataLabeling.Authorization;
 
 namespace Fanap.DataLabeling.EntityFrameworkCore
 {
     public class DataLabelingDbContext : AbpZeroDbContext<Tenant, Role, User, DataLabelingDbContext>
     {
+        public DbSet<StaticUser> StaticUsers { get; set; }
         public DbSet<AnswerOption> AnswerOptions { get; set; }
         public DbSet<AnswerLog> AnswerLogs { get; set; }
         public DbSet<Dataset> Datasets { get; set; }

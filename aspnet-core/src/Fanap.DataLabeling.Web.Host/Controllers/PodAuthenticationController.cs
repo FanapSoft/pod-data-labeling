@@ -1,5 +1,7 @@
 ﻿using Abp.Domain.Repositories;
 using Abp.UI;
+using Fanap.DataLabeling.Authorization;
+using Fanap.DataLabeling.Authorization.Roles;
 using Fanap.DataLabeling.Authorization.Users;
 using Fanap.DataLabeling.Clients.Pod;
 using Fanap.DataLabeling.Clients.Pod.Dtos;
@@ -27,18 +29,21 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
         private readonly IRepository<ExternalToken> externalTokensRepo;
         private readonly UserManager userManager;
         private readonly IRepository<User, long> userRepo;
+        private readonly IRepository<StaticUser> staticUserRepo;
         private readonly IPodClient _service;
         private readonly IJwtCreator _jwtCreator;
         public PodAuthenticationController(
             IRepository<ExternalToken> externalTokensRepo,
             UserManager userManager,
             IRepository<User, long> userRepo,
+            IRepository<StaticUser> staticUserRepo,
             IPodClient service,
             IJwtCreator jwtCreator)
         {
             this.externalTokensRepo = externalTokensRepo;
             this.userManager = userManager;
             this.userRepo = userRepo;
+            this.staticUserRepo = staticUserRepo;
             _service = service;
             _jwtCreator = jwtCreator;
         }
@@ -132,7 +137,15 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
                 Logger.Error(string.Join(',', res.Errors.Select(ff => ff.Description)));
                 throw new UserFriendlyException("Importing user failed");
             }
+
+            await AssignStaticRoles(profileInfo, user);
             return user;
+        }
+
+        private async Task AssignStaticRoles(UserProfileInfo profileInfo, User user)
+        {
+            var isAdminUser = staticUserRepo.GetAll().Count(ff => ff.IsAdmin == true && ff.PodUserName == profileInfo.Username) > 0;
+            await userManager.AddToRoleAsync(user, StaticRoleNames.Tenants.Admin);
         }
 
         private void LogErrorAndGetRefId(string errorMessage, string exceptionType, int? userId)

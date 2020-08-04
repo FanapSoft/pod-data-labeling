@@ -16,8 +16,8 @@ namespace Fanap.DataLabeling.Configuration
                 ,new SettingDefinition(AppSettingNames.PodApiBaseAddress, "https://api.pod.ir/srv/core", scopes: SettingScopes.Application | SettingScopes.Tenant | SettingScopes.User, isVisibleToClients: true)
                 ,new SettingDefinition(AppSettingNames.PodClientId, "18035391i35f649cbac6ab4d4c9bf45fb", scopes: SettingScopes.Application | SettingScopes.Tenant | SettingScopes.User, isVisibleToClients: true)
                 ,new SettingDefinition(AppSettingNames.PodClientSecret, "66fe1d81", scopes: SettingScopes.Application | SettingScopes.Tenant | SettingScopes.User, isVisibleToClients: true)
-                
-                
+
+
                 ,new SettingDefinition(AppSettingNames.AuthenticationAudience, "", scopes: SettingScopes.Application | SettingScopes.Tenant | SettingScopes.User, isVisibleToClients: true)
                 ,new SettingDefinition(AppSettingNames.AuthenticationClockSkew, "", scopes: SettingScopes.Application | SettingScopes.Tenant | SettingScopes.User, isVisibleToClients: true)
                 ,new SettingDefinition(AppSettingNames.AuthenticationIssuer, "", scopes: SettingScopes.Application | SettingScopes.Tenant | SettingScopes.User, isVisibleToClients: true)
