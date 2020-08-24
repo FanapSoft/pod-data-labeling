@@ -60,7 +60,7 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
         }
 
         [HttpGet("callback")]
-        public async Task<LoginResponseDto> Callback(string code)
+        public async Task Callback(string code)
         {
             try
             {
@@ -105,8 +105,8 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
                     Provider = "Pod",
                     RefreshToken = podToken.RefreshToken
                 });
-
-                return loginResponse;
+                var redurectUrl = SettingManager.GetSettingValue(AppSettingNames.AuthenticationRedirectUrl);
+                Response.Redirect($"{redurectUrl}/{podToken.AccessToken}?userId={user.Id}");
             }
             catch (Exception e)
             {

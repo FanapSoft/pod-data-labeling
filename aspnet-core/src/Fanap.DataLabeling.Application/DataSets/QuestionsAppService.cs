@@ -1,6 +1,8 @@
 ﻿using Abp.Application.Services;
 using Abp.Authorization;
 using Abp.Domain.Repositories;
+using Abp.Extensions;
+using Abp.UI;
 using Fanap.DataLabeling.Datasets;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -11,7 +13,6 @@ using System.Threading.Tasks;
 
 namespace Fanap.DataLabeling.DataSets
 {
-    [AbpAuthorize]
     public class QuestionsAppService : ApplicationService, IQuestionsAppService
     {
         private readonly IRepository<Dataset, Guid> dataSetRepo;
@@ -27,8 +28,16 @@ namespace Fanap.DataLabeling.DataSets
             var dataSet = await dataSetRepo
                 .GetAllIncluding(ff => ff.AnswerOptions)
                 .SingleOrDefaultAsync(ff => ff.Id == input.DataSetId);
-            var dataSetItem = await dataSetItemRepo.GetAsync(input.DataSetItemId);
 
+            if (dataSet == null)
+                throw new UserFriendlyException($"DataSet not found with id {input.DataSetId}");
+            if(dataSet.AnswerOptions == null || !dataSet.AnswerOptions.Any())
+                throw new UserFriendlyException($"DataSet doest not have its answer options configured");
+            
+            var dataSetItem = await dataSetItemRepo.GetAll().SingleOrDefaultAsync(ff => ff.Id == input.DataSetItemId);
+            if(dataSetItem == null)
+                throw new UserFriendlyException($"DataSetItem not found with id {input.DataSetItemId}");
+            
             var question = new QuestionDto()
             {
                 QuestionType = dataSet.QuestionType,
@@ -43,6 +52,11 @@ namespace Fanap.DataLabeling.DataSets
         {
             if (question.QuestionType == QuestionType.Text)
             {
+                if (dataSet.QuestionTemplate.IsNullOrEmpty())
+                    throw new UserFriendlyException("Question template of dataset is empty");
+                if (dataSet.QuestionTemplate.Contains("{{Label.Title}}"))
+                    throw new UserFriendlyException("Question template does not exists {{Label.Title}} placeholder (case sensitive).");
+
                 question.Title = dataSet.QuestionTemplate.Replace("{{Label.Title}}", dataSetItem.Label.Name);
             }
             else if (question.QuestionType == QuestionType.Video || question.QuestionType == QuestionType.Voice)

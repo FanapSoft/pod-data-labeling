@@ -27,7 +27,7 @@ namespace Fanap.DataLabeling.DataSets
         {
             var foundDateset = dataSetRepo.Get(input.DataSetId);
             var allfiles = Directory.GetFiles(input.FolderPath, "*.*", SearchOption.AllDirectories);
-
+            foundDateset.ItemsSourcePath = input.FolderPath;
             foreach (var file in allfiles)
             {
                 var fileInfo = new FileInfo(file);
@@ -40,7 +40,7 @@ namespace Fanap.DataLabeling.DataSets
                 };
                 item.FileExtension = Path.GetExtension(fileInfo.FullName);
                 item.FileSize = fileInfo.Length;
-
+                
                 itemRepo.Insert(item);
             }
 

@@ -34,5 +34,8 @@ namespace Fanap.DataLabeling.Datasets
         public Guid? FinalLabelId { get; set; }
         public Label Label { get; set; }
         public Guid? LabelId { get; set; }
+
+        public Dataset Dataset { get; set; }
+        public Guid DatasetID { get; set; }
     }
 }

@@ -14,5 +14,6 @@
         public const string AuthenticationLifeTime = "AuthenticationLifeTime";
         public const string AuthenticationClockSkew = "AuthenticationClockSkew";
 
+        public const string AuthenticationRedirectUrl = "AuthenticationRedirectUrl";
     }
 }
