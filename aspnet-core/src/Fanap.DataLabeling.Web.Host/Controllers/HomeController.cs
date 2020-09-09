@@ -18,11 +18,6 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
             _notificationPublisher = notificationPublisher;
         }
 
-        public IActionResult Index()
-        {
-            return Redirect("/swagger");
-        }
-
         /// <summary>
         /// This is a demo code to demonstrate sending notification to default tenant admin and host admin uers.
         /// Don't use this code in production !!!

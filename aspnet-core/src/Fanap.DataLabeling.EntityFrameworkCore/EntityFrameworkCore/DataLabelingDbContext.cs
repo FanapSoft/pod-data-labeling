@@ -12,6 +12,7 @@ namespace Fanap.DataLabeling.EntityFrameworkCore
 {
     public class DataLabelingDbContext : AbpZeroDbContext<Tenant, Role, User, DataLabelingDbContext>
     {
+        public DbSet<Targets.TargetDefinition> TargetDefinitions { get; set; }
         public DbSet<StaticUser> StaticUsers { get; set; }
         public DbSet<AnswerOption> AnswerOptions { get; set; }
         public DbSet<AnswerLog> AnswerLogs { get; set; }

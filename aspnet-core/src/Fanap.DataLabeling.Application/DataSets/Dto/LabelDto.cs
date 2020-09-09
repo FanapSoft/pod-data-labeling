@@ -9,5 +9,7 @@ namespace Fanap.DataLabeling.DataSets
     public class LabelDto : FullAuditedEntityDto<Guid>
     {
         public string Name { get; set; }
+        public Guid? DatasetId { get; set; }
+
     }
 }

@@ -1,5 +1,9 @@
-﻿using Abp.Domain.Repositories;
+﻿using Abp.Authorization;
+using Abp.Authorization.Users;
+using Abp.Domain.Repositories;
+using Abp.Runtime.Security;
 using Abp.UI;
+using Fanap.DataLabeling.Authentication.JwtBearer;
 using Fanap.DataLabeling.Authorization;
 using Fanap.DataLabeling.Authorization.Roles;
 using Fanap.DataLabeling.Authorization.Users;
@@ -8,6 +12,8 @@ using Fanap.DataLabeling.Clients.Pod.Dtos;
 using Fanap.DataLabeling.Configuration;
 using Fanap.DataLabeling.Controllers;
 using Fanap.DataLabeling.Jwt;
+using Fanap.DataLabeling.Models.TokenAuth;
+using Fanap.DataLabeling.MultiTenancy;
 using Fanap.DataLabeling.Pod;
 using Fanap.DataLabeling.Pod.Dtos;
 using Microsoft.AspNetCore.Authorization;
@@ -16,8 +22,11 @@ using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Net;
+using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Fanap.DataLabeling.Web.Host.Controllers
@@ -26,6 +35,9 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
     [Route("pod/authentication")]
     public class PodAuthenticationController : DataLabelingControllerBase
     {
+        private readonly TokenAuthConfiguration tokenAuthConfiguration;
+        private readonly AbpLoginResultTypeHelper abpLoginResultTypeHelper;
+        private readonly LogInManager logInManager;
         private readonly IRepository<ExternalToken> externalTokensRepo;
         private readonly UserManager userManager;
         private readonly IRepository<User, long> userRepo;
@@ -33,6 +45,9 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
         private readonly IPodClient _service;
         private readonly IJwtCreator _jwtCreator;
         public PodAuthenticationController(
+            TokenAuthConfiguration tokenAuthConfiguration,
+            AbpLoginResultTypeHelper abpLoginResultTypeHelper,
+            LogInManager logInManager,
             IRepository<ExternalToken> externalTokensRepo,
             UserManager userManager,
             IRepository<User, long> userRepo,
@@ -40,6 +55,9 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
             IPodClient service,
             IJwtCreator jwtCreator)
         {
+            this.tokenAuthConfiguration = tokenAuthConfiguration;
+            this.abpLoginResultTypeHelper = abpLoginResultTypeHelper;
+            this.logInManager = logInManager;
             this.externalTokensRepo = externalTokensRepo;
             this.userManager = userManager;
             this.userRepo = userRepo;
@@ -64,49 +82,63 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
         {
             try
             {
-                Logger.Info($"{nameof(code)} : {code}");
-
-                var callbackUrl = $"{Request.Scheme}://{Request.Host}/pod/authentication/callback";
-                var podToken = await _service.GetTokenAsync(callbackUrl, code);
-
-                Logger.Info($"{nameof(podToken.AccessToken)} : {podToken.AccessToken}");
-
-                var profileInfo = await _service.GetUserProfileAsync(podToken.AccessToken);
-                var ssoId = profileInfo.ssoId;
-
-                Logger.Info($"{nameof(profileInfo)} : {profileInfo}");
-
-                var user = await userRepo.GetAll().SingleOrDefaultAsync(ff => ff.UserName == profileInfo.Username);
-
-                Logger.Info($"{nameof(user)} : {user}");
-
-                if (user == null)
+                using (AbpSession.Use(1, null))
                 {
-                    user = await ImportUserFromPodAsync(profileInfo);
+                    // name
+                    // avatar
+                    // pod userid 
+                    // username
+                    // cell phone
+
+
+                    CurrentUnitOfWork.SetTenantId(1);
+                    Logger.Info($"{nameof(code)} : {code}");
+
+                    var callbackUrl = $"{Request.Scheme}://{Request.Host}/pod/authentication/callback";
+                    var podToken = await _service.GetTokenAsync(callbackUrl, code);
+
+                    Logger.Info($"{nameof(podToken.AccessToken)} : {podToken.AccessToken}");
+
+                    var profileInfo = await _service.GetUserProfileAsync(podToken.AccessToken);
+                    var ssoId = profileInfo.ssoId;
+
+                    Logger.Info($"{nameof(profileInfo)} : {profileInfo}");
+
+                    var user = await userRepo.GetAll().SingleOrDefaultAsync(ff => ff.UserName == profileInfo.Username);
+
+                    Logger.Info($"{nameof(user)} : {user}");
+
+                    if (user == null)
+                    {
+                        user = await ImportUserFromPodAsync(profileInfo);
+                        CurrentUnitOfWork.SaveChanges();
+                    }
+
+                    var phone = GetIndividualUserPhoneAsync(profileInfo);
+
+                    externalTokensRepo.Insert(new ExternalToken
+                    {
+                        UserId = user.Id,
+                        AccessToken = podToken.AccessToken,
+                        CreationTime = DateTime.UtcNow,
+                        Provider = "Pod",
+                        RefreshToken = podToken.RefreshToken
+                    });
+
+                    var loginResult = await GetLoginResultAsync(
+                               user.UserName,
+                               "123qwe@QWE",
+                               "Default"
+                           );
+
+                    var accessToken = CreateAccessToken(CreateJwtClaims(loginResult.Identity));
+                    var encryptedAccessToken = GetEncryptedAccessToken(accessToken);
+                    
+                    var redurectUrl = SettingManager.GetSettingValue(AppSettingNames.AuthenticationRedirectUrl);
+                    var base64Token = Convert.ToBase64String(Encoding.UTF8.GetBytes(accessToken));
+                    Response.Redirect($"{redurectUrl}/{user.Id}/{base64Token}");
                 }
-
-                var phone = GetIndividualUserPhoneAsync(profileInfo);
-
-                var loginResponse = new LoginResponseDto
-                {
-                    FristName = user.Name + "",
-                    LastName = user.Surname + "",
-                    Username = user.UserName,
-                    CellphoneNumber = user.PhoneNumber,
-                    IndividualUserPhone = phone,
-                    Token = podToken.AccessToken
-                };
-
-                externalTokensRepo.Insert(new ExternalToken
-                {
-                    UserId = user.Id,
-                    AccessToken = podToken.AccessToken,
-                    CreationTime = DateTime.UtcNow,
-                    Provider = "Pod",
-                    RefreshToken = podToken.RefreshToken
-                });
-                var redurectUrl = SettingManager.GetSettingValue(AppSettingNames.AuthenticationRedirectUrl);
-                Response.Redirect($"{redurectUrl}/{podToken.AccessToken}?userId={user.Id}");
+                
             }
             catch (Exception e)
             {
@@ -115,6 +147,57 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
                 throw new UserFriendlyException("There was an error in authentication callback. Please take a look at system log to get more information");
             }
         }
+
+        private string CreateAccessToken(IEnumerable<Claim> claims, TimeSpan? expiration = null)
+        {
+            var now = DateTime.UtcNow;
+
+            var jwtSecurityToken = new JwtSecurityToken(
+                issuer: tokenAuthConfiguration.Issuer,
+                audience: tokenAuthConfiguration.Audience,
+                claims: claims,
+                notBefore: now,
+                expires: now.Add(expiration ?? tokenAuthConfiguration.Expiration),
+                signingCredentials: tokenAuthConfiguration.SigningCredentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
+        }
+
+        private static List<Claim> CreateJwtClaims(ClaimsIdentity identity)
+        {
+            var claims = identity.Claims.ToList();
+            var nameIdClaim = claims.First(c => c.Type == ClaimTypes.NameIdentifier);
+
+            // Specifically add the jti (random nonce), iat (issued timestamp), and sub (subject/user) claims.
+            claims.AddRange(new[]
+            {
+                    new Claim(JwtRegisteredClaimNames.Sub, nameIdClaim.Value),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                    new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.Now.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+                });
+
+            return claims;
+        }
+        private string GetEncryptedAccessToken(string accessToken)
+        {
+            return SimpleStringCipher.Instance.Encrypt(accessToken, AppConsts.DefaultPassPhrase);
+        }
+
+
+        private async Task<AbpLoginResult<Tenant, User>> GetLoginResultAsync(string usernameOrEmailAddress, string password, string tenancyName)
+        {
+            var loginResult = await logInManager.LoginAsync(usernameOrEmailAddress, password, tenancyName);
+
+            switch (loginResult.Result)
+            {
+                case AbpLoginResultType.Success:
+                    return loginResult;
+                default:
+                    throw abpLoginResultTypeHelper.CreateExceptionForFailedLoginAttempt(loginResult.Result, usernameOrEmailAddress, tenancyName);
+            }
+        }
+
 
         private async Task<User> ImportUserFromPodAsync(UserProfileInfo profileInfo)
         {
@@ -128,7 +211,8 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
                 PhoneNumber = profileInfo.CellphoneNumber,
                 IsPhoneNumberConfirmed = true,
                 IsEmailConfirmed = false,
-                IsImported = true
+                IsImported = true,
+                TenantId = 1
             };
 
             var res = await userManager.CreateAsync(user, "123qwe@QWE");

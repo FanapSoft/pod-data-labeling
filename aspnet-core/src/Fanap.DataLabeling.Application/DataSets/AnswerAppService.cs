@@ -13,6 +13,17 @@ using System.Threading.Tasks;
 
 namespace Fanap.DataLabeling.DataSets
 {
+
+    public class SubmitBatchAnswerInput
+    {
+        public List<SubmitAnswerInput> Answers { get; set; }
+    }
+    public class SubmitBatchAnswerOutput
+    {
+        public List<SubmitAnswerOutput> Answers { get; set; }
+    }
+    [AbpAuthorize]
+
     public class AnswersAppService : ApplicationService, IAnswersAppService
     {
         private readonly IRepository<Dataset, Guid> datasetRepo;
@@ -29,6 +40,22 @@ namespace Fanap.DataLabeling.DataSets
             this.answerLogRepo = answerLogRepo;
             this.questionAppService = questionAppService;
         }
+
+        public async Task<SubmitBatchAnswerOutput> SubmitBatchAnswer(SubmitBatchAnswerInput input)
+        {
+            if (input.Answers == null || !input.Answers.Any())
+                throw new UserFriendlyException("You need to provide answers");
+            var result = new List<SubmitAnswerOutput>();
+            foreach (var item in input.Answers)
+            {
+                result.Add(await SubmitAnswer(item));
+            }
+            return new SubmitBatchAnswerOutput
+            {
+                Answers = result
+            };
+        }
+
         public async Task<SubmitAnswerOutput> SubmitAnswer(SubmitAnswerInput input)
         {
             var foundDataSet = datasetRepo.GetAll().SingleOrDefault(ff => ff.Id == input.DataSetId);
@@ -38,7 +65,7 @@ namespace Fanap.DataLabeling.DataSets
                 throw new UserFriendlyException("Dataset is not active");
             if (foundDataSet.LabelingStatus != LabelingStatus.Started)
                 throw new UserFriendlyException("Dataset is not in labeling mode.");
-            if(input.Ignored && input.IgnoreReason.IsNullOrEmpty())
+            if (input.Ignored && input.IgnoreReason.IsNullOrEmpty())
                 throw new UserFriendlyException("Ignore reason is required.");
 
 

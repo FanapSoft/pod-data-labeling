@@ -21,9 +21,14 @@ using Newtonsoft.Json.Serialization;
 using Hangfire;
 using Abp.Hangfire;
 using Fanap.DataLabeling.Authorization;
+using Abp.Authorization;
+using Abp.Application.Features;
+using Abp.Configuration.Startup;
+using System.Collections.Generic;
 
 namespace Fanap.DataLabeling.Web.Host.Startup
 {
+
     public class Startup
     {
         private const string _defaultCorsPolicyName = "localhost";
@@ -124,13 +129,13 @@ namespace Fanap.DataLabeling.Web.Host.Startup
             );
         }
 
-        public void Configure(IApplicationBuilder app,  ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
             app.UseHangfireServer();
 
             app.UseHangfireDashboard("/hangfire", new DashboardOptions
             {
-                Authorization = new[] { new AbpHangfireAuthorizationFilter(PermissionNames.Pages_Roles) }
+                //Authorization = new[] { new AbpHangfireAuthorizationFilter(PermissionNames.Pages_Roles) }
             });
 
             app.UseAbp(options => { options.UseAbpRequestLocalization = false; }); // Initializes ABP framework.
@@ -145,7 +150,7 @@ namespace Fanap.DataLabeling.Web.Host.Startup
 
             app.UseAbpRequestLocalization();
 
-          
+
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapHub<AbpCommonHub>("/signalr");

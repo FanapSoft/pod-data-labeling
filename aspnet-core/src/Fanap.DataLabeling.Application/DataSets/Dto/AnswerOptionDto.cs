@@ -12,7 +12,6 @@ namespace Fanap.DataLabeling.DataSets
         public string Title { get; set; }
         public string Src { get; set; }
         public int Index { get; set; }
-        public DatasetDto DataSet { get; set; }
         public Guid DataSetId { get; set; }
     }
 }

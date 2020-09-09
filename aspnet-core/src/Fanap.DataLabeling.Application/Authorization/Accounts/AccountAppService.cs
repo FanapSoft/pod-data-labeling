@@ -7,7 +7,7 @@ using Fanap.DataLabeling.Authorization.Users;
 
 namespace Fanap.DataLabeling.Authorization.Accounts
 {
-    [RemoteService(IsEnabled = false)]
+    //[RemoteService(IsEnabled = false)]
     public class AccountAppService : DataLabelingAppServiceBase, IAccountAppService
     {
         // from: http://regexlib.com/REDetails.aspx?regexp_id=1923

@@ -4,6 +4,7 @@ using Abp.Domain.Repositories;
 using Abp.Domain.Uow;
 using Fanap.DataLabeling.Authorization.Users;
 using Fanap.DataLabeling.Datasets;
+using Microsoft.AspNetCore.Mvc.Diagnostics;
 using System;
 using System.IO;
 
@@ -26,13 +27,20 @@ namespace Fanap.DataLabeling.DataSets
         public override void Execute(ImportInput input)
         {
             var foundDateset = dataSetRepo.Get(input.DataSetId);
+            
+            foundDateset.ItemsSourcePath = input.FolderPath;
+            
+            
             var allfiles = Directory.GetFiles(input.FolderPath, "*.*", SearchOption.AllDirectories);
             foundDateset.ItemsSourcePath = input.FolderPath;
             foreach (var file in allfiles)
             {
                 var fileInfo = new FileInfo(file);
                 var item = new DatasetItem();
+                item.DatasetID = input.DataSetId;
+                item.Name = fileInfo.Name;
                 item.FilePath = fileInfo.FullName;
+                item.FileName = fileInfo.Name;
                 item.Label = new Labels.Label
                 {
                     Name = fileInfo.Directory.Name,
@@ -43,7 +51,7 @@ namespace Fanap.DataLabeling.DataSets
                 
                 itemRepo.Insert(item);
             }
-
+            CurrentUnitOfWork.SaveChanges();
         }
     }
 }
