@@ -19,7 +19,6 @@ using Fanap.DataLabeling.Pod.Dtos;
 
 namespace Fanap.DataLabeling.Clients.Pod
 {
-    
     public class PodClient : IPodClient
     {
         public const string PodHttpClientName = "PodHttpClient";
@@ -265,6 +264,30 @@ namespace Fanap.DataLabeling.Clients.Pod
                 {
                     Ott = result.Ott
                 };
+            }
+        }
+
+        public async Task<PodWalletCreditDto> GetWalletCredit(string accessToken)
+        {
+
+            var client = CreateClient();
+            var url = BuildApiUrl("nzh/getCredit?currencyCode=IRR&wallet=PODLAND_WALLET");
+
+            using (var httpRequest = new HttpRequestMessage(HttpMethod.Get, url))
+            {
+                httpRequest.Headers.Add("_token_", accessToken);
+                httpRequest.Headers.Add("_token_issuer_", "1");
+
+                var httpResponse = await client.SendAsync(httpRequest);
+
+                var body = await httpResponse.Content.ReadAsStringAsync();
+                EnsureSuccessfulResponse(httpResponse, body, "سرویس دریافت موجودی کیف پول");
+
+                var podWalletCreditResponse = JsonConvert.DeserializeObject<PodResult<PodWalletCreditResponse>>(body);
+
+                var result = new PodWalletCreditDto(podWalletCreditResponse.Result);
+
+                return result;
             }
         }
     }
