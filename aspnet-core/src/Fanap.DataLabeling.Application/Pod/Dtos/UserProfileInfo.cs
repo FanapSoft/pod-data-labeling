@@ -4,7 +4,11 @@ namespace Fanap.DataLabeling.Clients.Pod.Dtos
 {
     public class UserProfileInfo
     {
+        [JsonProperty("gender")]
+        public string Gender { get; set; }
 
+        [JsonProperty("profileImage")]
+        public string ProfileImage { get; set; }
         [JsonProperty("name")]
         public string Name { get; set; }
 

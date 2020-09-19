@@ -1,8 +1,10 @@
-﻿using Abp.Authorization;
+﻿using Abp.AspNetCore.Mvc.Authorization;
+using Abp.Authorization;
 using Abp.Authorization.Users;
 using Abp.Domain.Repositories;
 using Abp.Runtime.Security;
 using Abp.UI;
+using Fanap.DataLabeling.Authentication;
 using Fanap.DataLabeling.Authentication.JwtBearer;
 using Fanap.DataLabeling.Authorization;
 using Fanap.DataLabeling.Authorization.Roles;
@@ -25,6 +27,7 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Net;
+using System.Security.AccessControl;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
@@ -35,6 +38,7 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
     [Route("pod/authentication")]
     public class PodAuthenticationController : DataLabelingControllerBase
     {
+        private readonly IAccessTokenManager accessTokenManager;
         private readonly TokenAuthConfiguration tokenAuthConfiguration;
         private readonly AbpLoginResultTypeHelper abpLoginResultTypeHelper;
         private readonly LogInManager logInManager;
@@ -45,6 +49,7 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
         private readonly IPodClient _service;
         private readonly IJwtCreator _jwtCreator;
         public PodAuthenticationController(
+            IAccessTokenManager accessTokenManager,
             TokenAuthConfiguration tokenAuthConfiguration,
             AbpLoginResultTypeHelper abpLoginResultTypeHelper,
             LogInManager logInManager,
@@ -55,6 +60,7 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
             IPodClient service,
             IJwtCreator jwtCreator)
         {
+            this.accessTokenManager = accessTokenManager;
             this.tokenAuthConfiguration = tokenAuthConfiguration;
             this.abpLoginResultTypeHelper = abpLoginResultTypeHelper;
             this.logInManager = logInManager;
@@ -84,13 +90,6 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
             {
                 using (AbpSession.Use(1, null))
                 {
-                    // name
-                    // avatar
-                    // pod userid 
-                    // username
-                    // cell phone
-
-
                     CurrentUnitOfWork.SetTenantId(1);
                     Logger.Info($"{nameof(code)} : {code}");
 
@@ -113,6 +112,11 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
                         user = await ImportUserFromPodAsync(profileInfo);
                         CurrentUnitOfWork.SaveChanges();
                     }
+                    else
+                    {
+                        await EditUserProfileBasedOnPod(user, profileInfo);
+                        CurrentUnitOfWork.SaveChanges();
+                    }
 
                     var phone = GetIndividualUserPhoneAsync(profileInfo);
 
@@ -133,12 +137,12 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
 
                     var accessToken = CreateAccessToken(CreateJwtClaims(loginResult.Identity));
                     var encryptedAccessToken = GetEncryptedAccessToken(accessToken);
-                    
+
                     var redurectUrl = SettingManager.GetSettingValue(AppSettingNames.AuthenticationRedirectUrl);
                     var base64Token = Convert.ToBase64String(Encoding.UTF8.GetBytes(accessToken));
                     Response.Redirect($"{redurectUrl}/{user.Id}/{base64Token}");
                 }
-                
+
             }
             catch (Exception e)
             {
@@ -146,6 +150,46 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
 
                 throw new UserFriendlyException("There was an error in authentication callback. Please take a look at system log to get more information");
             }
+        }
+
+
+        [HttpGet("profile")]
+        [AbpMvcAuthorize]
+        public async Task<UserProfileInfo> Profile()
+        {
+            var podToken = await accessTokenManager.GetCurrentAccessToken();
+            var profileInfo = await _service.GetUserProfileAsync(podToken);
+
+            return profileInfo;
+        }
+
+
+        [HttpPost("profile/edit")]
+        [AbpMvcAuthorize]
+        public async Task<UserProfileInfo> EditProfile(UserProfileInfo newProfile)
+        {
+            var podToken = await accessTokenManager.GetCurrentAccessToken();
+            var profileInfo = await _service.GetUserProfileAsync(podToken);
+            var user = userRepo.Get(AbpSession.UserId.Value);
+
+            // edit pod profile
+            var editedProfile = await _service.EditUserProfileAsync(podToken, newProfile);
+            
+            await EditUserProfileBasedOnPod(user, newProfile);
+            await CurrentUnitOfWork.SaveChangesAsync();
+
+            return profileInfo;
+        }
+
+        private async Task EditUserProfileBasedOnPod(User user, UserProfileInfo profileInfo)
+        {
+            user.Name = profileInfo.FirstName;
+            user.Surname = profileInfo.LastName;
+            user.PodUserId = profileInfo.UserId;
+            user.UserName = profileInfo.Username;
+            user.PhoneNumber = profileInfo.CellphoneNumber;
+            user.ProfileImage = profileInfo.ProfileImage;
+            await userRepo.UpdateAsync(user);
         }
 
         private string CreateAccessToken(IEnumerable<Claim> claims, TimeSpan? expiration = null)
@@ -184,7 +228,6 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
             return SimpleStringCipher.Instance.Encrypt(accessToken, AppConsts.DefaultPassPhrase);
         }
 
-
         private async Task<AbpLoginResult<Tenant, User>> GetLoginResultAsync(string usernameOrEmailAddress, string password, string tenancyName)
         {
             var loginResult = await logInManager.LoginAsync(usernameOrEmailAddress, password, tenancyName);
@@ -198,7 +241,6 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
             }
         }
 
-
         private async Task<User> ImportUserFromPodAsync(UserProfileInfo profileInfo)
         {
             var user = new User
@@ -209,6 +251,7 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
                 PodUserId = profileInfo.UserId,
                 UserName = profileInfo.Username,
                 PhoneNumber = profileInfo.CellphoneNumber,
+                ProfileImage = profileInfo.ProfileImage,
                 IsPhoneNumberConfirmed = true,
                 IsEmailConfirmed = false,
                 IsImported = true,
@@ -234,7 +277,7 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
 
         private void LogErrorAndGetRefId(string errorMessage, string exceptionType, int? userId)
         {
-            var exceptionInfo = new 
+            var exceptionInfo = new
             {
                 UserId = userId,
                 CurrentPageUrl = Response.HttpContext.Request.Path,
@@ -244,7 +287,6 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
 
             Logger.Error(JsonConvert.SerializeObject(exceptionInfo));
         }
-
 
         private static string GetIndividualUserPhoneAsync(UserProfileInfo userInfo)
         {

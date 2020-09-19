@@ -188,6 +188,43 @@ namespace Fanap.DataLabeling.Clients.Pod
 
         }
 
+        public async Task<UserProfileInfo> EditUserProfileAsync(string podAccessToken, UserProfileInfo profile)
+        {
+            var address = settingManager.GetSettingValue(AppSettingNames.PodApiBaseAddress);
+            var clientSecret = settingManager.GetSettingValue(AppSettingNames.PodClientSecret);
+            var clientId = settingManager.GetSettingValue(AppSettingNames.PodClientId);
+
+            var client = CreateClient();
+            var url = $"{address}/nzh/editProfileWithConfirmation/";
+            using (var httpRequest = new HttpRequestMessage(HttpMethod.Get, url))
+            {
+                var parameters = new List<KeyValuePair<string, string>>
+                {
+                    new KeyValuePair<string, string>("client_id", clientId),
+                    new KeyValuePair<string, string>("client_secret", clientSecret),
+                    new KeyValuePair<string, string>("firstName", profile.FirstName),
+                    new KeyValuePair<string, string>("lastName", profile.LastName),
+                    //new KeyValuePair<string, string>("cellphoneNumber", profile.CellphoneNumber),
+                    new KeyValuePair<string, string>("gender", profile.Gender),
+                    new KeyValuePair<string, string>("profileImage", profile.ProfileImage),
+                };
+
+                httpRequest.Content = new FormUrlEncodedContent(parameters);
+                httpRequest.Headers.Add("_token_", new List<string>() { podAccessToken });
+                httpRequest.Headers.Add("_token_issuer_", new List<string>() { "1" });
+
+                var httpResponse = await client.SendAsync(httpRequest);
+
+                var body = await httpResponse.Content.ReadAsStringAsync();
+
+                EnsureSuccessfulResponse(httpResponse, body, "سرویس ویرایش پروفایل");
+
+                var result = JsonConvert.DeserializeObject<PodResult<UserProfileInfo>>(body);
+                return result.Result;
+            }
+
+        }
+
         private void EnsureSuccessfulResponse(HttpResponseMessage httpResponse, string body, string serviceName)
         {
 

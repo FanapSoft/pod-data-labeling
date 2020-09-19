@@ -8,6 +8,7 @@ namespace Fanap.DataLabeling.Clients.Pod
 {
     public interface IPodClient: ITransientDependency
     {
+        Task<UserProfileInfo> EditUserProfileAsync(string podAccessToken, UserProfileInfo profile);
         Task<PodWalletCreditDto> GetWalletCredit(string accessToken);
         Task<Token> GetTokenAsync(string calllBackurl, string code);
         Task<Token> RefreshTokenAsync(string refreshToken);
