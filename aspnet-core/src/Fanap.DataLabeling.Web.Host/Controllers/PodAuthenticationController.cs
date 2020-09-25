@@ -140,7 +140,7 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
 
                     var redurectUrl = SettingManager.GetSettingValue(AppSettingNames.AuthenticationRedirectUrl);
                     var base64Token = Convert.ToBase64String(Encoding.UTF8.GetBytes(accessToken));
-                    Response.Redirect($"{redurectUrl}/{user.Id}/{base64Token}");
+                    Response.Redirect($"{redurectUrl}/{user.Id}/?token={base64Token}");
                 }
 
             }

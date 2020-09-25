@@ -70,6 +70,7 @@ namespace Fanap.DataLabeling.DataSets
 
             var question = new QuestionDto()
             {
+                DatasetItemId = dataSetItem.Id,
                 QuestionType = dataSet.QuestionType,
                 AnswerType = dataSet.AnswerType,
                 Options = ObjectMapper.Map<List<AnswerOptionDto>>(dataSet.AnswerOptions),
@@ -80,23 +81,20 @@ namespace Fanap.DataLabeling.DataSets
 
         private void SetQuestionInfo(QuestionDto question, Dataset dataSet, DatasetItem dataSetItem)
         {
+            question.QuestionSubjectFileSrc = dataSetItem.Id.ToString();
             if (question.QuestionType == QuestionType.Text)
             {
                 if (dataSet.QuestionTemplate.IsNullOrEmpty())
                     throw new UserFriendlyException("Question template of dataset is empty");
-                if (!dataSet.QuestionTemplate.Contains("{{Label.Title}}"))
-                    throw new UserFriendlyException("Question template does not have {{Label.Title}} placeholder (case sensitive).");
+                //if (!dataSet.QuestionTemplate.Contains("{{Label.Title}}"))
+                //    throw new UserFriendlyException("Question template does not have {{Label.Title}} placeholder (case sensitive).");
 
                 // TODO: CHANGE TO LABEL NAME
                 question.Title = dataSet.QuestionTemplate.Replace("{{Label.Title}}", dataSetItem.Name);
             }
-            else if (question.QuestionType == QuestionType.Video || question.QuestionType == QuestionType.Voice)
+            if (question.QuestionType == QuestionType.Image || question.QuestionType == QuestionType.Video || question.QuestionType == QuestionType.Voice)
             {
-                question.Src = dataSet.QuestionSrc;
-            }
-            else
-            {
-                throw new ArgumentOutOfRangeException(nameof(question.QuestionType));
+                question.QuestionFileSrc = dataSet.QuestionSrc;
             }
         }
     }
