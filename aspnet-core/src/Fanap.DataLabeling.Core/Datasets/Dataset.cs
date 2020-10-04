@@ -11,6 +11,7 @@ namespace Fanap.DataLabeling.Datasets
     public class Dataset : FullAuditedEntity<Guid>
     {
         public string ItemsSourcePath { get; set; }
+        public string ProcessedItemsSourcePath { get; set; }
         public bool IsActive { get; set; }
         [MaxLength(100)]
         public string Name { get; set; }

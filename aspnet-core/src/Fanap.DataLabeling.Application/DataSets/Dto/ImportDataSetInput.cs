@@ -7,7 +7,6 @@ namespace Fanap.DataLabeling.DataSets
     [Serializable]
     public class ImportInput
     {
-
         [Required]
         public string FolderPath { get; set; }
         [Required]

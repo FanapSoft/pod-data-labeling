@@ -55,10 +55,14 @@ namespace Fanap.DataLabeling.DataSets
         {
             if (!Directory.Exists(input.FolderPath))
                 throw new UserFriendlyException("Path does not exists in local machine.");
-            if(Repository.GetAll().Any(ff => ff.ItemsSourcePath == input.FolderPath))
-                throw new UserFriendlyException("You have imported this folder already.");
 
-            
+            var itemsSourcePath = Path.Join(input.FolderPath, "original images");
+            var processedPath = Path.Join(input.FolderPath, "processed_images");
+
+            if (!Directory.Exists(itemsSourcePath))
+                throw new UserFriendlyException("original images path not found");
+            if (!Directory.Exists(processedPath))
+                throw new UserFriendlyException("processed_images path not found");
 
             var jobId = backgroundJobManager.Enqueue<DataSetImportJob, ImportInput>(input);
 

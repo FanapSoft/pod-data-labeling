@@ -72,19 +72,25 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
             _jwtCreator = jwtCreator;
         }
 
-        [HttpGet("")]
-        public IActionResult CallPodAuthentication()
+        [HttpGet("{local:bool?}")]
+        public IActionResult CallPodAuthentication([FromRoute] bool? local)
         {
             var uri = SettingManager.GetSettingValue(AppSettingNames.PodUri);
             var clientId = SettingManager.GetSettingValue(AppSettingNames.PodClientId);
-            var callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{Request.Host}/pod/authentication/callback");
+            var callbackUrl = string.Empty;
+            if (local != null && local.Value)
+                callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{Request.Host}/pod/authentication/callback/true");
+            else
+                callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{Request.Host}/pod/authentication/callback");
+
             var variables =
                 $"/authorize/?client_id={clientId}&response_type=code&redirect_uri={callbackUrl}&scope=profile";
+
             return Redirect($"{uri}{variables}");
         }
 
-        [HttpGet("callback")]
-        public async Task Callback(string code)
+        [HttpGet("callback/{local:bool?}")]
+        public async Task Callback(string code, bool? local)
         {
             try
             {
@@ -93,8 +99,13 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
                     CurrentUnitOfWork.SetTenantId(1);
                     Logger.Info($"{nameof(code)} : {code}");
 
-                    var callbackUrl = $"{Request.Scheme}://{Request.Host}/pod/authentication/callback";
-                    var podToken = await _service.GetTokenAsync(callbackUrl, code);
+                    var callbackUrl = string.Empty;
+                    if (local != null && local.Value)
+                        callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{Request.Host}/pod/authentication/callback/true");
+                    else
+                        callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{Request.Host}/pod/authentication/callback");
+
+                    var podToken = await _service.GetTokenAsync(WebUtility.UrlDecode(callbackUrl), code);
 
                     Logger.Info($"{nameof(podToken.AccessToken)} : {podToken.AccessToken}");
 
@@ -138,7 +149,13 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
                     var accessToken = CreateAccessToken(CreateJwtClaims(loginResult.Identity));
                     var encryptedAccessToken = GetEncryptedAccessToken(accessToken);
 
-                    var redurectUrl = SettingManager.GetSettingValue(AppSettingNames.AuthenticationRedirectUrl);
+
+                    var redurectUrl = string.Empty;
+                    if (local != null && local.Value)
+                        redurectUrl = "http://localhost:8080/loggedIn";
+                    else
+                        redurectUrl = SettingManager.GetSettingValue(AppSettingNames.AuthenticationRedirectUrl);
+
                     var base64Token = Convert.ToBase64String(Encoding.UTF8.GetBytes(accessToken));
                     Response.Redirect($"{redurectUrl}/{user.Id}/?token={base64Token}");
                 }
@@ -174,7 +191,7 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
 
             // edit pod profile
             var editedProfile = await _service.EditUserProfileAsync(podToken, newProfile);
-            
+
             await EditUserProfileBasedOnPod(user, newProfile);
             await CurrentUnitOfWork.SaveChangesAsync();
 
