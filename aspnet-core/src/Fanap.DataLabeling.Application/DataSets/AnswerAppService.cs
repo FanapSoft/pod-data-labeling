@@ -1,16 +1,19 @@
 ﻿using Abp.Application.Services;
 using Abp.Application.Services.Dto;
 using Abp.Authorization;
+using Abp.Collections.Extensions;
 using Abp.Domain.Repositories;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
 using Abp.UI;
 using Fanap.DataLabeling.Authorization;
 using Fanap.DataLabeling.Datasets;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -77,7 +80,6 @@ namespace Fanap.DataLabeling.DataSets
                 Answers = result
             };
         }
-
         public async Task<SubmitAnswerOutput> SubmitAnswer(SubmitAnswerInput input)
         {
             var foundDataSet = datasetRepo.GetAll().SingleOrDefault(ff => ff.Id == input.DataSetId);
@@ -91,8 +93,11 @@ namespace Fanap.DataLabeling.DataSets
                 throw new UserFriendlyException("Ignore reason is required.");
 
 
-            var question = questionAppService.GetQuestion(new GetQuestionInput { DataSetId = input.DataSetId, DataSetItemId = input.DataSetItemId });
+            //var question = questionAppService.GetQuestion(new GetQuestionInput { DataSetId = input.DataSetId, DataSetItemId = input.DataSetItemId });
 
+            //var serializerSetting = new JsonSerializerSettings();
+            //serializerSetting.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+            //serializerSetting.NullValueHandling = NullValueHandling.Ignore;
             var log = new AnswerLog()
             {
                 Answer = input.AnswerIndex,
@@ -100,11 +105,21 @@ namespace Fanap.DataLabeling.DataSets
                 DataSetItemId = input.DataSetItemId,
                 Ignored = input.Ignored,
                 IgnoreReason = input.IgnoreReason,
-                QuestionObject = JsonConvert.SerializeObject(question),
+                //QuestionObject = JsonConvert.SerializeObject(question, Formatting.Indented, serializerSetting),
             };
 
             var id = await answerLogRepo.InsertAndGetIdAsync(log);
             return new SubmitAnswerOutput { Id = id };
+        }
+        public async Task<AnswerStatisticsOutput> Stats(AnswerStatisticsInput input)
+        {
+            var query = await Repository
+                .GetAll()
+                .WhereIf(input.UserId != null, ff => ff.CreatorUserId == input.UserId.Value)
+                .WhereIf(input.DataSetId != null, ff => ff.DataSetId == input.DataSetId.Value)
+                .CountAsync();
+
+            return new AnswerStatisticsOutput { TotalCount = query };
         }
     }
 }

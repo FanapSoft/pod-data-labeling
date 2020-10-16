@@ -4,6 +4,7 @@ using Abp.Authorization;
 using Abp.BackgroundJobs;
 using Abp.Domain.Entities.Auditing;
 using Abp.Domain.Repositories;
+using Abp.Linq.Extensions;
 using Abp.UI;
 using Fanap.DataLabeling.Datasets;
 using Fanap.DataLabeling.Labels;
@@ -20,15 +21,19 @@ namespace Fanap.DataLabeling.DataSets
     [AbpAuthorize]
     public class DataSetsAppService : AsyncCrudAppService<Dataset, DatasetDto, Guid>, IDataSetsAppService
     {
+        private readonly IRepository<AnswerLog, Guid> answerRepo;
         private readonly IRepository<AnswerOption, Guid> answerOptionsRepo;
         private readonly IRepository<Label, Guid> labelRepo;
         private readonly IBackgroundJobManager backgroundJobManager;
 
-        public DataSetsAppService(IRepository<Dataset, Guid> repository, 
-            IRepository<AnswerOption, Guid> answerOptionsRepo, 
-            IRepository<Label, Guid> labelRepo, 
+        public DataSetsAppService(
+            IRepository<AnswerLog, Guid> answerRepo,
+            IRepository<Dataset, Guid> repository,
+            IRepository<AnswerOption, Guid> answerOptionsRepo,
+            IRepository<Label, Guid> labelRepo,
             IBackgroundJobManager backgroundJobManager) : base(repository)
         {
+            this.answerRepo = answerRepo;
             this.answerOptionsRepo = answerOptionsRepo;
             this.labelRepo = labelRepo;
             this.backgroundJobManager = backgroundJobManager;
@@ -71,6 +76,20 @@ namespace Fanap.DataLabeling.DataSets
                 JobId = jobId,
                 DataSetId = input.DataSetId
             };
+        }
+        public async Task<DataSetStatisticsOutput> Stats(DataSetStatisticsInput input)
+        {
+            var dataSetIds = await answerRepo.GetAll()
+                .WhereIf(input.UserId != null, ff => ff.CreatorUserId == input.UserId)
+                .Select(ff => ff.DataSetId).ToListAsync();
+
+            var query = await Repository
+                .GetAll()
+                .WhereIf(input.UserId != null, ff => dataSetIds.Contains(ff.Id))
+                .WhereIf(input.LabelingStatus != null, ff => ff.LabelingStatus == input.LabelingStatus.Value)
+                .CountAsync();
+
+            return new DataSetStatisticsOutput { TotalCount = query };
         }
     }
 }
