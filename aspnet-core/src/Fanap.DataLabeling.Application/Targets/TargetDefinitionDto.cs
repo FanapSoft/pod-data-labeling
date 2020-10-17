@@ -1,5 +1,6 @@
 ﻿using Abp.Application.Services.Dto;
 using Abp.AutoMapper;
+using Fanap.DataLabeling.DataSets;
 using Fanap.DataLabeling.Users.Dto;
 using System;
 using System.Collections.Generic;
@@ -13,6 +14,9 @@ namespace Fanap.DataLabeling.Targets
         public TargetType Type { get; set; }
         public long OwnerId { get; set; }
         public UserDto Owner { get; set; }
+        public Guid? DataSetId { get; set; }
+        public DatasetDto DataSet { get; set; }
+
         public int AnswerCount { get; set; }
 
     }

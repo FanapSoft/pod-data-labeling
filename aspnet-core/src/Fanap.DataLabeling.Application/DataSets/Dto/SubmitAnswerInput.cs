@@ -10,5 +10,6 @@ namespace Fanap.DataLabeling.DataSets
         public Guid DataSetItemId { get; set; }
         public int AnswerIndex { get; set; }
         public string QuestionObject { get; set; }
+        public long DurationToAnswerInSeconds { get; set; }
     }
 }

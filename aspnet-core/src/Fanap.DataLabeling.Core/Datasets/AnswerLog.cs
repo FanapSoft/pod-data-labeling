@@ -19,5 +19,6 @@ namespace Fanap.DataLabeling.Datasets
         public string QuestionObject { get; set; }
         public Label DeterminedLabel { get; set; }
         public Guid? DeterminedLabelId { get; set; }
+        public long DurationToAnswerInSeconds { get; set; }
     }
 }

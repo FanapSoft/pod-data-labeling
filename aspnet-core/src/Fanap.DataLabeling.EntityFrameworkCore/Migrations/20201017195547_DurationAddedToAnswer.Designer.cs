@@ -4,14 +4,16 @@ using Fanap.DataLabeling.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Fanap.DataLabeling.Migrations
 {
     [DbContext(typeof(DataLabelingDbContext))]
-    partial class DataLabelingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20201017195547_DurationAddedToAnswer")]
+    partial class DurationAddedToAnswer
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2033,9 +2035,6 @@ namespace Fanap.DataLabeling.Migrations
                     b.Property<long?>("CreatorUserId")
                         .HasColumnType("bigint");
 
-                    b.Property<Guid?>("DataSetId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<long?>("DeleterUserId")
                         .HasColumnType("bigint");
 
@@ -2058,8 +2057,6 @@ namespace Fanap.DataLabeling.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("DataSetId");
 
                     b.HasIndex("OwnerId");
 
@@ -2361,10 +2358,6 @@ namespace Fanap.DataLabeling.Migrations
 
             modelBuilder.Entity("Fanap.DataLabeling.Targets.TargetDefinition", b =>
                 {
-                    b.HasOne("Fanap.DataLabeling.Datasets.Dataset", "DataSet")
-                        .WithMany()
-                        .HasForeignKey("DataSetId");
-
                     b.HasOne("Fanap.DataLabeling.Authorization.Users.User", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")

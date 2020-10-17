@@ -30,6 +30,7 @@ namespace Fanap.DataLabeling.DataSets
     }
     public class GetAllAnswerLogsInput : PagedAndSortedResultRequestDto
     {
+        public bool IncludeQuestion { get; set; }
         public Guid? DataSetId { get; set; }
         public long? UserId { get; set; }
         public DateTime? From { get; set; }
@@ -51,7 +52,6 @@ namespace Fanap.DataLabeling.DataSets
             IQuestionsAppService questionAppService) : base(repository)
         {
             this.CreatePermissionName = PermissionNames.Pages_Roles;
-            this.UpdatePermissionName = PermissionNames.Pages_Roles;
             this.DeletePermissionName = PermissionNames.Pages_Roles;
             this.datasetRepo = datasetRepo;
             this.answerLogRepo = answerLogRepo;
@@ -66,6 +66,33 @@ namespace Fanap.DataLabeling.DataSets
                 .WhereIf(input.From != null, ff => ff.CreationTime >= input.From)
                 .WhereIf(input.To != null, ff => ff.CreationTime <= input.To);
         }
+
+        public override async Task<PagedResultDto<AnswerLogDto>> GetAllAsync(GetAllAnswerLogsInput input)
+        {
+            var result = await base.GetAllAsync(input);
+            if (input.IncludeQuestion)
+                await SetQuestion(result);
+            return result;
+        }
+        public override Task<AnswerLogDto> UpdateAsync(AnswerLogDto input)
+        {
+            var dataset = datasetRepo.Get(input.DataSetId);
+            if (dataset.LabelingStatus == LabelingStatus.Finished)
+                throw new UserFriendlyException("You cannot edit the answer at this stage.");
+            return base.UpdateAsync(input);
+        }
+        private async Task SetQuestion(PagedResultDto<AnswerLogDto> result)
+        {
+            var serializerSetting = new JsonSerializerSettings();
+            serializerSetting.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+            serializerSetting.NullValueHandling = NullValueHandling.Ignore;
+            foreach (var item in result.Items)
+            {
+                var question = await questionAppService.GetQuestion(new GetQuestionInput { DataSetId = item.DataSetId, DataSetItemId = item.DataSetItemId });
+                item.QuestionObject = JsonConvert.SerializeObject(question, serializerSetting);
+            }
+        }
+
         public async Task<SubmitBatchAnswerOutput> SubmitBatchAnswer(SubmitBatchAnswerInput input)
         {
             if (input.Answers == null || !input.Answers.Any())
@@ -101,6 +128,7 @@ namespace Fanap.DataLabeling.DataSets
             var log = new AnswerLog()
             {
                 Answer = input.AnswerIndex,
+                DurationToAnswerInSeconds = input.DurationToAnswerInSeconds,
                 DataSetId = input.DataSetId,
                 DataSetItemId = input.DataSetItemId,
                 Ignored = input.Ignored,

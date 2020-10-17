@@ -11,7 +11,8 @@ namespace Fanap.DataLabeling.Targets
         public TargetType Type { get; set; }
         public long OwnerId { get; set; }
         public User Owner { get; set; }
-
+        public Guid? DataSetId { get; set; }
+        public Datasets.Dataset DataSet { get; set; }
         public int AnswerCount { get; set; }
 
     }
