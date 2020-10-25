@@ -79,6 +79,7 @@ namespace Fanap.DataLabeling.DataSets
 
             var question = new QuestionDto()
             {
+                G = dataSetItem.IsGoldenData,
                 DatasetItemId = dataSetItem.Id,
                 QuestionType = dataSet.QuestionType,
                 AnswerType = dataSet.AnswerType,
