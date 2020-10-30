@@ -13,6 +13,7 @@ using Fanap.DataLabeling.Authentication.JwtBearer;
 using Fanap.DataLabeling.Configuration;
 using Fanap.DataLabeling.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
+using Abp.AspNetCore.OData;
 
 namespace Fanap.DataLabeling
 {
@@ -20,8 +21,10 @@ namespace Fanap.DataLabeling
          typeof(DataLabelingApplicationModule),
          typeof(DataLabelingEntityFrameworkModule),
          typeof(AbpAspNetCoreModule)
-        ,typeof(AbpAspNetCoreSignalRModule)
+        ,typeof(AbpAspNetCoreSignalRModule),
+        typeof(AbpAspNetCoreODataModule)
      )]
+
     public class DataLabelingWebCoreModule : AbpModule
     {
         private readonly IWebHostEnvironment _env;
