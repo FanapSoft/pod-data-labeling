@@ -77,6 +77,7 @@ namespace Fanap.DataLabeling.Web.Host.Startup
                 }
             ).AddNewtonsoftJson(options =>
             {
+                options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
                 options.SerializerSettings.ContractResolver = new AbpMvcContractResolver(IocManager.Instance)
                 {
                     NamingStrategy = new CamelCaseNamingStrategy()

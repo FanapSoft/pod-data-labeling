@@ -49,14 +49,22 @@ namespace Fanap.DataLabeling.DataSets
             if (dataSet.AnswerOptions == null || !dataSet.AnswerOptions.Any())
                 throw new UserFriendlyException($"DataSet doest not have its answer options configured");
 
+            // random golden item
+            var goldendataSetItems = await dataSetItemRepo
+                .GetAllIncluding(ff => ff.Label)
+                .WhereIf(input.LabelId != null, ff => ff.LabelId == input.LabelId.Value)
+                .Where(ff => ff.IsGoldenData == true)
+                .OrderBy(ff => Guid.NewGuid())
+                .Take(1).ToListAsync();
             // random dataset items
             var dataSetItems = await dataSetItemRepo
                 .GetAllIncluding(ff => ff.Label)
                 .WhereIf(input.LabelId != null, ff => ff.LabelId == input.LabelId.Value)
+                .Where(ff => ff.IsGoldenData == false)
                 .OrderBy(ff => Guid.NewGuid())
-                .Take(input.Count).ToListAsync();
+                .Take(input.Count - goldendataSetItems.Count).ToListAsync();
 
-            var res = dataSetItems.Select(ff =>
+            var res = dataSetItems.Union(goldendataSetItems).OrderByDescending(ff => Guid.NewGuid()).Select(ff =>
             {
                 return GetQuestion(new GetQuestionInput { DataSetId = input.DataSetId, DataSetItemId = ff.Id }).Result;
             });

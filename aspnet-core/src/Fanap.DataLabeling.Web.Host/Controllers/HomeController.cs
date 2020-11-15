@@ -11,6 +11,7 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
 {
     public class HomeController : DataLabelingControllerBase
     {
+
         private readonly INotificationPublisher _notificationPublisher;
 
         public HomeController(INotificationPublisher notificationPublisher)

@@ -2,7 +2,8 @@
 {
     public enum TargetType
     {
+        ForEver = 0,
         Daily = 1,
-        Weekly = 7
+        Weekly = 7,
     }
 }
