@@ -25,10 +25,7 @@ using Abp.Authorization;
 using Abp.Application.Features;
 using Abp.Configuration.Startup;
 using System.Collections.Generic;
-using Microsoft.AspNet.OData.Extensions;
 using System.Net.Http.Headers;
-using Microsoft.AspNet.OData.Formatter;
-using Microsoft.AspNet.OData.Builder;
 using Fanap.DataLabeling.Authorization.Users;
 using Fanap.DataLabeling.Datasets;
 using Fanap.DataLabeling.Targets;
@@ -51,18 +48,8 @@ namespace Fanap.DataLabeling.Web.Host.Startup
 
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
-            services.AddOData();
-
             services.AddMvcCore(options =>
             {
-                foreach (var outputFormatter in options.OutputFormatters.OfType<ODataOutputFormatter>().Where(_ => _.SupportedMediaTypes.Count == 0))
-                {
-                    outputFormatter.SupportedMediaTypes.Add(new Microsoft.Net.Http.Headers.MediaTypeHeaderValue("application/prs.odatatestxx-odata"));
-                }
-                foreach (var inputFormatter in options.InputFormatters.OfType<ODataInputFormatter>().Where(_ => _.SupportedMediaTypes.Count == 0))
-                {
-                    inputFormatter.SupportedMediaTypes.Add(new Microsoft.Net.Http.Headers.MediaTypeHeaderValue("application/prs.odatatestxx-odata"));
-                }
             });
 
             services.AddHangfire(config =>
@@ -158,8 +145,6 @@ namespace Fanap.DataLabeling.Web.Host.Startup
                 options.Filter = httpContext => httpContext.Request.Path.Value.StartsWith("/odata");
             });
 
-            app.UseODataBatching();
-
             app.UseHangfireServer();
 
             app.UseHangfireDashboard("/hangfire", new DashboardOptions
@@ -185,17 +170,6 @@ namespace Fanap.DataLabeling.Web.Host.Startup
                 endpoints.MapHub<AbpCommonHub>("/signalr");
                 endpoints.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
                 endpoints.MapControllerRoute("defaultWithArea", "{area}/{controller=Home}/{action=Index}/{id?}");
-
-
-                var builder = new ODataConventionModelBuilder();
-                builder.EntitySet<User>("Users").EntityType.Expand().Filter().OrderBy().Page();
-                builder.EntitySet<Dataset>("DataSets").EntityType.Expand().Filter().OrderBy().Page();
-                builder.EntitySet<AnswerLog>("Answers").EntityType.Expand().Filter().OrderBy().Page();
-                builder.EntitySet<TargetDefinition>("TargetDefinitions").EntityType.Expand().Filter().OrderBy().Page();
-                builder.EntitySet<DatasetItem>("DatasetItems").EntityType.Expand().Filter().OrderBy().Page();
-                builder.EntitySet<User>("Users").EntityType.Expand().Filter().OrderBy().Page();
-                endpoints.MapODataRoute("odataPrefix", "odata", builder.GetEdmModel());
-
             });
 
             // Enable middleware to serve generated Swagger as a JSON endpoint

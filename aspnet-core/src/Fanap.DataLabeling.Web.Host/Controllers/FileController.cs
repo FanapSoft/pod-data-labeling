@@ -71,8 +71,5 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
                 return StatusCode(500);
             }
         }
-
-
     }
-
 }
