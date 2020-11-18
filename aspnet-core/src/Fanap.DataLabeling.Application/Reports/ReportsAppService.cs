@@ -9,40 +9,39 @@ using System.Linq;
 using Abp.Linq.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Fanap.DataLabeling.Authorization.Users;
+using Microsoft.AspNetCore.Mvc;
+using Abp.Application.Services.Dto;
 
 namespace Fanap.DataLabeling.Reports
 {
-    public class AnswersCountsInput
+    public class DatasetReportOutput
     {
-        public DateTime? From { get; set; }
-        public DateTime? To { get; set; }
-        public Guid? DataSetId { get; set; }
-    }
-    public class ScoreboardInput
-    {
-        public DateTime? From { get; set; }
-        public Guid? DataSetId { get; set; }
-    }
-    public class AnswersCountsOutput
-    {
+        public Guid Id { get; set; }
         public string Name { get; set; }
-        public string Surname { get; set; }
-        public long UserId { get; set; }
-        public long Count { get; set; }
+        public string Description { get; set; }
+        public decimal UMax { get; set; }
+        public Guid? RandomItemId { get; set; }
+        public int AnswerBudgetCountPerUser { get; set; }
+        public DateTime CreationTime { get; internal set; }
     }
-    [AbpAuthorize]
     public class ReportsAppService : DataLabelingAppServiceBase
     {
+        private readonly IRepository<DatasetItem, Guid> datasetItemRepo;
+        private readonly IRepository<Dataset, Guid> datasetRepo;
         private readonly IRepository<AnswerLog, Guid> answerLogRepo;
         private readonly IRepository<User, long> usersRepo;
 
-        public ReportsAppService(IRepository<AnswerLog, Guid> answerLogRepo, IRepository<User, long> usersRepo)
+        public ReportsAppService(IRepository<DatasetItem, Guid> datasetItemRepo, IRepository<Dataset, Guid> datasetRepo, IRepository<AnswerLog, Guid> answerLogRepo, IRepository<User, long> usersRepo)
         {
+            this.datasetItemRepo = datasetItemRepo;
+            this.datasetRepo = datasetRepo;
             this.answerLogRepo = answerLogRepo;
             this.usersRepo = usersRepo;
         }
 
-        public async Task<IEnumerable<AnswersCountsOutput>> AnswersCounts(AnswersCountsInput input)
+        [AbpAuthorize]
+        [HttpGet]
+        public async Task<IEnumerable<AnswersCountsOutput>> AnswersCountsTrend(AnswersCountsInput input)
         {
             if (input.From == null)
                 input.From = DateTime.UtcNow.Date.AddDays(-7);
@@ -52,10 +51,12 @@ namespace Fanap.DataLabeling.Reports
             var query = answerLogRepo.GetAll()
                 .Where(ff => ff.CreationTime >= input.From && ff.CreationTime <= input.To)
                 .WhereIf(input.DataSetId != null, ff => ff.DataSetId == input.DataSetId)
-                .GroupBy(ff => ff.CreatorUserId)
+                .WhereIf(input.UserId != null, ff => ff.CreatorUserId == input.UserId)
+                .GroupBy(ff => new { ff.CreatorUserId, ff.CreationTime.Date })
                 .Select(ff => new AnswersCountsOutput
                 {
-                    UserId = ff.Key.Value,
+                    UserId = ff.Key.CreatorUserId.Value,
+                    Date = ff.Key.Date,
                     Count = ff.Count()
                 });
 
@@ -70,8 +71,11 @@ namespace Fanap.DataLabeling.Reports
             return result;
         }
 
+        [HttpGet]
         public async Task<IEnumerable<AnswersCountsOutput>> Scoreboard(ScoreboardInput input)
         {
+            if (input.MaxResultCount == 0)
+                input.MaxResultCount = 10;
             var query = answerLogRepo.GetAll()
                 .WhereIf(input.From != null, ff => ff.CreationTime >= input.From)
                 .WhereIf(input.DataSetId != null, ff => ff.DataSetId == input.DataSetId)
@@ -81,7 +85,7 @@ namespace Fanap.DataLabeling.Reports
                     UserId = ff.Key.Value,
                     Count = ff.Count()
                 })
-                .OrderByDescending(ff => ff.Count);
+                .OrderByDescending(ff => ff.Count).Take(input.MaxResultCount);
 
             var result = await query.ToListAsync();
             foreach (var item in result)
@@ -92,6 +96,31 @@ namespace Fanap.DataLabeling.Reports
             }
 
             return result;
+        }
+
+        [HttpGet]
+        public async Task<PagedResultDto<DatasetReportOutput>> DataSets(PagedResultRequestDto input)
+        {
+            if (input.MaxResultCount == 0)
+                input.MaxResultCount = 10;
+            var totalCount = datasetRepo.Count();
+            var query = await datasetRepo.GetAll().Select(ff => new DatasetReportOutput
+            {
+                Id = ff.Id,
+                Description = ff.Description,
+                Name = ff.Name,
+                UMax = ff.UMax,
+                CreationTime = ff.CreationTime,
+                AnswerBudgetCountPerUser = ff.AnswerBudgetCountPerUser
+            }).OrderByDescending(ff => ff.CreationTime).Take(input.MaxResultCount).ToListAsync();
+
+            foreach (var item in query)
+            {
+                item.RandomItemId = datasetItemRepo.GetAll()
+                    .Where(ff => ff.DatasetID == item.Id)
+                    .OrderBy(ff => Guid.NewGuid()).FirstOrDefault()?.Id;
+            }
+            return new PagedResultDto<DatasetReportOutput>(totalCount, query);
         }
     }
 }

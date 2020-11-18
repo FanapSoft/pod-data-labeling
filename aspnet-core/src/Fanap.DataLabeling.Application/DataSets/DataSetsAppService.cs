@@ -41,17 +41,29 @@ namespace Fanap.DataLabeling.DataSets
 
         public async override Task<DatasetDto> UpdateAsync(DatasetDto input)
         {
-            answerOptionsRepo.Delete(ff => ff.DataSetId == input.Id);
-
-            labelRepo.Delete(ff => ff.DatasetId == input.Id);
+            if (input.AnswerOptions != null && input.AnswerOptions.Any())
+            {
+                answerOptionsRepo.Delete(ff => ff.DataSetId == input.Id);
+            }
 
             CurrentUnitOfWork.SaveChanges();
+
+            if (input.AnswerOptions != null)
+                foreach (var item in input.AnswerOptions)
+                {
+                    item.Id = Guid.Empty;
+                }
 
             var res = await base.UpdateAsync(input);
 
             return res;
         }
 
+        public async override Task<DatasetDto> GetAsync(EntityDto<Guid> input)
+        {
+            var found = await Repository.GetAllIncluding(ff => ff.AnswerOptions).SingleOrDefaultAsync(ff => ff.Id == input.Id);
+            return MapToEntityDto(found);
+        }
         protected override IQueryable<Dataset> CreateFilteredQuery(PagedAndSortedResultRequestDto input)
         {
             return base.CreateFilteredQuery(input).Include(ff => ff.AnswerOptions);
