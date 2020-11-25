@@ -10,6 +10,7 @@ namespace Fanap.DataLabeling.Datasets
 {
     public class Dataset : FullAuditedEntity<Guid>
     {
+        public int AnswerReplicationCount { get; set; }
         public int AnswerBudgetCountPerUser { get; set; }
         public decimal UMin { get; set; } 
         public decimal UMax { get; set; }

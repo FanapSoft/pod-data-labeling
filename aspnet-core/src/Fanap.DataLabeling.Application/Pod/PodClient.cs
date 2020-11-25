@@ -65,6 +65,7 @@ namespace Fanap.DataLabeling.Clients.Pod
                 return result.Result.ApiKey;
             }
         }
+
         public async Task<Token> RefreshTokenAsync(string refreshToken)
         {
             var address = settingManager.GetSettingValue(AppSettingNames.PodUri);

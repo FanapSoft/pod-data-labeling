@@ -10,6 +10,7 @@ namespace Fanap.DataLabeling.DataSets
     [AutoMap(typeof(Dataset))]
     public class DatasetDto : FullAuditedEntityDto<Guid>
     {
+        public int AnswerReplicationCount { get; set; }
         public int AnswerBudgetCountPerUser { get; set; }
         public decimal UMin { get; set; }
         public decimal UMax { get; set; }

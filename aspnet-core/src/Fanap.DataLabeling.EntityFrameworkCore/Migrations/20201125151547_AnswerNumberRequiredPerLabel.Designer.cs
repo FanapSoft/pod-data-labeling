@@ -4,14 +4,16 @@ using Fanap.DataLabeling.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Fanap.DataLabeling.Migrations
 {
     [DbContext(typeof(DataLabelingDbContext))]
-    partial class DataLabelingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20201125151547_AnswerNumberRequiredPerLabel")]
+    partial class AnswerNumberRequiredPerLabel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1725,7 +1727,7 @@ namespace Fanap.DataLabeling.Migrations
                     b.Property<int>("AnswerBudgetCountPerUser")
                         .HasColumnType("int");
 
-                    b.Property<int>("AnswerReplicationCount")
+                    b.Property<int>("AnswerNumberRequiredPerLabel")
                         .HasColumnType("int");
 
                     b.Property<int>("AnswerType")
