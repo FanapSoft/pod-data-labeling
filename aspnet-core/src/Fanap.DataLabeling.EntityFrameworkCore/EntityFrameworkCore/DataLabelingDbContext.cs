@@ -14,6 +14,7 @@ namespace Fanap.DataLabeling.EntityFrameworkCore
     {
         public DbSet<Accounting.Transaction> Transactions { get; set; }
         public DbSet<Targets.TargetDefinition> TargetDefinitions { get; set; }
+        public DbSet<Targets.UserTarget> UserTargets { get; set; }
         public DbSet<StaticUser> StaticUsers { get; set; }
         public DbSet<AnswerOption> AnswerOptions { get; set; }
         public DbSet<AnswerLog> AnswerLogs { get; set; }

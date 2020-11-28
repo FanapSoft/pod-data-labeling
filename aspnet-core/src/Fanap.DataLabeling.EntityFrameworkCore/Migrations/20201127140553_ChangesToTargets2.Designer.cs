@@ -4,14 +4,16 @@ using Fanap.DataLabeling.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Fanap.DataLabeling.Migrations
 {
     [DbContext(typeof(DataLabelingDbContext))]
-    partial class DataLabelingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20201127140553_ChangesToTargets2")]
+    partial class ChangesToTargets2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2085,48 +2087,6 @@ namespace Fanap.DataLabeling.Migrations
                     b.ToTable("TargetDefinitions");
                 });
 
-            modelBuilder.Entity("Fanap.DataLabeling.Targets.UserTarget", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreationTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<long?>("CreatorUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("DeleterUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<long?>("LastModifierUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("OwnerId")
-                        .HasColumnType("bigint");
-
-                    b.Property<Guid>("TargetDefinitionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerId");
-
-                    b.HasIndex("TargetDefinitionId");
-
-                    b.ToTable("UserTargets");
-                });
-
             modelBuilder.Entity("Abp.Application.Features.EditionFeatureSetting", b =>
                 {
                     b.HasBaseType("Abp.Application.Features.FeatureSetting");
@@ -2425,21 +2385,6 @@ namespace Fanap.DataLabeling.Migrations
                     b.HasOne("Fanap.DataLabeling.Datasets.Dataset", "DataSet")
                         .WithMany()
                         .HasForeignKey("DataSetId");
-                });
-
-            modelBuilder.Entity("Fanap.DataLabeling.Targets.UserTarget", b =>
-                {
-                    b.HasOne("Fanap.DataLabeling.Authorization.Users.User", "Owner")
-                        .WithMany()
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Fanap.DataLabeling.Targets.TargetDefinition", "TargetDefinition")
-                        .WithMany()
-                        .HasForeignKey("TargetDefinitionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Abp.Application.Features.EditionFeatureSetting", b =>

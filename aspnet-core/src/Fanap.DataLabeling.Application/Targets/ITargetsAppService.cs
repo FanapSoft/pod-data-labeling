@@ -8,9 +8,8 @@ namespace Fanap.DataLabeling.Targets
     public class TargetDefinitionGetAllInput: PagedAndSortedResultRequestDto
     {
         public Guid? DataSetId { get; set; }
-        public long? OwnerId { get; set; }
     }
-    public interface ITargetsAppService: IAsyncCrudAppService<TargetDefinitionDto, Guid, TargetDefinitionGetAllInput>
+    public interface ITargetDefinitionsAppService: IAsyncCrudAppService<TargetDefinitionDto, Guid, TargetDefinitionGetAllInput>
     { 
     
     }

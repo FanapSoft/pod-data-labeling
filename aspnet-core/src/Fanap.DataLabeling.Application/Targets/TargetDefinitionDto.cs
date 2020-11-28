@@ -12,12 +12,14 @@ namespace Fanap.DataLabeling.Targets
     public class TargetDefinitionDto: FullAuditedEntityDto<Guid>
     {
         public TargetType Type { get; set; }
-        public long OwnerId { get; set; }
-        public UserDto Owner { get; set; }
         public Guid? DataSetId { get; set; }
         public DatasetDto DataSet { get; set; }
 
         public int AnswerCount { get; set; }
+
+        public decimal UMin { get; set; }
+        public decimal UMax { get; set; }
+        public decimal T { get; set; }
 
     }
 }

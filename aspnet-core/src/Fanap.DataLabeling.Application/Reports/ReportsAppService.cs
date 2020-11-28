@@ -19,7 +19,7 @@ namespace Fanap.DataLabeling.Reports
         public Guid Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
-        public decimal UMax { get; set; }
+        public decimal TotalBudget { get; set; }
         public Guid? RandomItemId { get; set; }
         public int AnswerBudgetCountPerUser { get; set; }
         public DateTime CreationTime { get; internal set; }
@@ -109,7 +109,7 @@ namespace Fanap.DataLabeling.Reports
                 Id = ff.Id,
                 Description = ff.Description,
                 Name = ff.Name,
-                UMax = ff.UMax,
+                TotalBudget = ff.TotalBudget,
                 CreationTime = ff.CreationTime,
                 AnswerBudgetCountPerUser = ff.AnswerBudgetCountPerUser
             }).OrderByDescending(ff => ff.CreationTime).Take(input.MaxResultCount).ToListAsync();

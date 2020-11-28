@@ -14,12 +14,12 @@ namespace Fanap.DataLabeling.Credit
 {
     public class CreditAppService : DataLabelingAppServiceBase
     {
-        private readonly IRepository<TargetDefinition, Guid> targetRepo;
+        private readonly IRepository<UserTarget, Guid> targetRepo;
         private readonly IRepository<AnswerLog, Guid> answerRepo;
         private readonly IRepository<DatasetItem, Guid> datasetItemRepo;
         private readonly IRepository<Dataset, Guid> datasetRepo;
 
-        public CreditAppService(IRepository<TargetDefinition, Guid> targetRepo, IRepository<AnswerLog, Guid> answerRepo, IRepository<DatasetItem, Guid> datasetItemRepo, IRepository<Dataset, Guid> datasetRepo)
+        public CreditAppService(IRepository<UserTarget, Guid> targetRepo, IRepository<AnswerLog, Guid> answerRepo, IRepository<DatasetItem, Guid> datasetItemRepo, IRepository<Dataset, Guid> datasetRepo)
         {
             this.targetRepo = targetRepo;
             this.answerRepo = answerRepo;
@@ -34,19 +34,19 @@ namespace Fanap.DataLabeling.Credit
                 .GetAll()
                 .Where(ff => ff.DataSetId == input.DataSetId && ff.CreatorUserId == input.UserId && ff.DataSetItem.IsGoldenData && !ff.Ignored).Select(ff => new { ff.Id, ff.Answer });
             var goldenAnswersCount = await allGoldenAnswers.CountAsync();
-            var userSpecificTarget = await targetRepo.GetAll().OrderBy(ff => ff.CreationTime).LastOrDefaultAsync(ff => ff.DataSetId == input.DataSetId && ff.OwnerId == input.UserId);
+            var userSpecificTarget = await targetRepo.GetAllIncluding(ff => ff.TargetDefinition.DataSet).OrderBy(ff => ff.CreationTime).LastOrDefaultAsync(ff => ff.TargetDefinition.DataSetId == input.DataSetId && ff.OwnerId == input.UserId);
             if (userSpecificTarget == null)
                 throw new UserFriendlyException("There is no user specific target assigned to the current user in this dataset.");
 
-            var answerBudgetPerUser = userSpecificTarget.AnswerCount;
+            var answerBudgetPerUser = userSpecificTarget.TargetDefinition.AnswerCount;
 
-            var targetGoldenCount = GetTargetGoldenCount(answerBudgetPerUser, dataset);
+            var targetGoldenCount = userSpecificTarget.TargetDefinition.GoldenCount;
             var correctGoldenAsnwersToCredit = new List<dynamic>();
             var incorrectCorrectGoldenAsnwersToCredit = new List<dynamic>();
             var G = targetGoldenCount;
-            var UMax = GetTargetMoniteryLimit(answerBudgetPerUser, dataset, dataset.UMax);
-            var UMin = GetTargetMoniteryLimit(answerBudgetPerUser, dataset, dataset.UMin);
-            var T = dataset.T;
+            var UMax = userSpecificTarget.TargetDefinition.UMax;
+            var UMin = userSpecificTarget.TargetDefinition.UMin;
+            var T = userSpecificTarget.TargetDefinition.T;
             foreach (var item in allGoldenAnswers.ToList())
             {
                 if (item.Answer != dataset.CorrectGoldenAnswerIndex)
@@ -59,46 +59,21 @@ namespace Fanap.DataLabeling.Credit
             if (correctGoldenAnswersCount == 0)
                 return new GetCreditOutput
                 {
-                    Credit = dataset.UMin
+                    Credit = UMin
                 };
             if (correctGoldenAnswersCount > answerBudgetPerUser)
                 return new GetCreditOutput
                 {
-                    Credit = dataset.UMax
+                    Credit = UMax
                 };
             var bonusesFraction = G - correctGoldenAnswersCount;
             var result = middle * (Math.Pow(Convert.ToDouble(T), Convert.ToDouble(bonusesFraction))) + Convert.ToDouble(UMin);
+            userSpecificTarget.TargetDefinition.DataSet = null;
             return new GetCreditOutput
             {
-                UMin  = UMin,
-                Umax = UMax,
-                Credit = Convert.ToDecimal(Math.Round(result / 10, 0) * 10),
-                G = G,
-                GoldCounts = targetGoldenCount,
-                Correct = correctGoldenAnswersCount
+                Target = userSpecificTarget.TargetDefinition,
+                Credit = Convert.ToDecimal(result),
             };
-        }
-
-        private int GetTargetMoniteryLimit(int answerBudgetPerUser, Dataset dataset, decimal value)
-        {
-            var totalItem = datasetItemRepo.Count(ff => ff.DatasetID == dataset.Id);
-            var totalGolden = datasetItemRepo.Count(ff => ff.DatasetID == dataset.Id && ff.IsGoldenData);
-            var generalFraction = Convert.ToDouble(totalGolden) / Convert.ToDouble(totalItem);
-
-            var totalReplicatedGolden = dataset.AnswerReplicationCount * totalGolden;
-
-            var targetGolden = GetTargetGoldenCount(answerBudgetPerUser, dataset);
-            var result = (Convert.ToDouble(targetGolden) * Convert.ToDouble(value)) / Convert.ToDouble(totalReplicatedGolden);
-
-            return Convert.ToInt32(result);
-        }
-
-        private int GetTargetGoldenCount(int answerBudgetPerUser, Dataset dataset)
-        {
-            var totalItemcount = datasetItemRepo.Count(ff => ff.DatasetID == dataset.Id);
-            var totalGoldenCount = datasetItemRepo.Count(ff => ff.DatasetID == dataset.Id && ff.IsGoldenData);
-            var fraction = Convert.ToDouble(totalGoldenCount) / Convert.ToDouble(totalItemcount);
-            return Convert.ToInt32(answerBudgetPerUser * fraction);
         }
 
         public async Task<GetCreditOutput> CollectCredit(GetCreditInput input)
