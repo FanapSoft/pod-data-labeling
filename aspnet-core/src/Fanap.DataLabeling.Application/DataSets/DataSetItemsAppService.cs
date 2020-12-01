@@ -19,7 +19,8 @@ namespace Fanap.DataLabeling.DataSets
     {
         public string LabelName { get; set; }
         public Guid? DataSetId { get; set; }
-
+        public bool? IsGoldenData { get; set; } 
+        public bool? OnlyNonDecidedGoldens { get; set; }
     }
     public interface IDataSetItemsAppService : IAsyncCrudAppService<DataSetItemDto, Guid, DataSetItemsGetAllInput>
     {
@@ -36,6 +37,8 @@ namespace Fanap.DataLabeling.DataSets
         protected override IQueryable<DatasetItem> CreateFilteredQuery(DataSetItemsGetAllInput input)
         {
             return base.CreateFilteredQuery(input).Include(ff => ff.Label)
+                .WhereIf(input.IsGoldenData != null, ff => ff.IsGoldenData)
+                .WhereIf(input.OnlyNonDecidedGoldens != null, ff => ff.ConfirmedGoldenData == null)
                 .WhereIf(!input.LabelName.IsNullOrWhiteSpace(), ff => ff.Label.Name.Contains(input.LabelName))
                 .WhereIf(input.DataSetId != null, ff => ff.DatasetID == input.DataSetId);
         }

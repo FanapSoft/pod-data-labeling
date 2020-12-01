@@ -189,6 +189,81 @@ namespace Fanap.DataLabeling.Clients.Pod
 
         }
 
+        public async Task<ContactDto> AddContactAsync(string ownerAccessToken, string userName)
+        {
+            var address = settingManager.GetSettingValue(AppSettingNames.PodApiBaseAddress);
+
+            var client = CreateClient();
+            var url = $"{address}/nzh/addContacts";
+            using (var httpRequest = new HttpRequestMessage(HttpMethod.Post, url))
+            {
+                var parameters = new List<KeyValuePair<string, string>>
+                {
+                    new KeyValuePair<string, string>("username", userName),
+                    new KeyValuePair<string, string>("uniqueId", DateTime.Now.Ticks.ToString()),
+                    new KeyValuePair<string, string>("ownerId", ""),
+                    new KeyValuePair<string, string>("firstName", ""),
+                    new KeyValuePair<string, string>("lastName", ""),
+                    new KeyValuePair<string, string>("cellphoneNumber", ""),
+                    new KeyValuePair<string, string>("email", ""),
+                    //new KeyValuePair<string, string>("typeCode", null),
+                };
+
+                httpRequest.Content = new FormUrlEncodedContent(parameters);
+                httpRequest.Headers.Add("_token_", new List<string>() { ownerAccessToken });
+                httpRequest.Headers.Add("_token_issuer_", new List<string>() { "1" });
+
+                var httpResponse = await client.SendAsync(httpRequest);
+
+                var body = await httpResponse.Content.ReadAsStringAsync();
+
+                EnsureSuccessfulResponse(httpResponse, body, "سرویس افزودن مخاطب");
+
+                var result = JsonConvert.DeserializeObject<PodResult<ContactDto[]>>(body);
+                return result.Result.First();
+            }
+        }
+
+        public async Task<ContactDto> TransferToUser(string contactId, decimal amount)
+        {
+            var address = settingManager.GetSettingValue(AppSettingNames.PodApiBaseAddress);
+            var businessAccessToken = settingManager.GetSettingValue(AppSettingNames.PodApiToken);
+
+            var client = CreateClient();
+            var url = $"{address}/nzh/addContacts";
+            var timeStamp = DateTime.Now.Ticks.ToString();
+            using (var httpRequest = new HttpRequestMessage(HttpMethod.Post, url))
+            {
+                var parameters = new List<KeyValuePair<string, string>>
+                {
+                    new KeyValuePair<string, string>("contactId", contactId),
+                    new KeyValuePair<string, string>("uniqueId", DateTime.Now.Ticks.ToString()),
+                    new KeyValuePair<string, string>("amount", ""),
+                    new KeyValuePair<string, string>("timestamp", timeStamp.ToString()),
+                    new KeyValuePair<string, string>("sign", ""),
+                    new KeyValuePair<string, string>("cellphoneNumber", ""),
+                    new KeyValuePair<string, string>("email", ""),
+                    //new KeyValuePair<string, string>("typeCode", null),
+                };
+                var signContent = @$"timestamp: {timeStamp}
+userid: 3174
+contactid: 5105
+amount: 2000";
+                httpRequest.Content = new FormUrlEncodedContent(parameters);
+                httpRequest.Headers.Add("_token_", new List<string>() { businessAccessToken });
+                httpRequest.Headers.Add("_token_issuer_", new List<string>() { "1" });
+
+                var httpResponse = await client.SendAsync(httpRequest);
+
+                var body = await httpResponse.Content.ReadAsStringAsync();
+
+                EnsureSuccessfulResponse(httpResponse, body, "سرویس افزودن مخاطب");
+
+                var result = JsonConvert.DeserializeObject<PodResult<ContactDto[]>>(body);
+                return result.Result.First();
+            }
+        }
+
         public async Task<UserProfileInfo> EditUserProfileAsync(string podAccessToken, UserProfileInfo profile)
         {
             var address = settingManager.GetSettingValue(AppSettingNames.PodApiBaseAddress);

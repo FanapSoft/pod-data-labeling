@@ -29,6 +29,7 @@ namespace Fanap.DataLabeling.Datasets
         public long FileSize { get; set; }
         [MaxLength(1000)]
         public bool IsGoldenData { get; set; }
+        public bool? ConfirmedGoldenData { get; set; }
         public DatasetItemType Type { get; set; }
         public Label FinalLabel { get; set; }
         public Guid? FinalLabelId { get; set; }

@@ -22,10 +22,15 @@ namespace Fanap.DataLabeling.Targets
             return base.CreateFilteredQuery(input)
                 .Where(ff => ff.OwnerId == input.OwnerId);
         }
-        public override Task<UserTargetDto> CreateAsync(UserTargetDto input)
+        public async override Task<UserTargetDto> CreateAsync(UserTargetDto input)
         {
-            input.OwnerId = AbpSession.UserId.Value;
-            return base.CreateAsync(input);
+            var result = await Repository.InsertAsync(new UserTarget
+            {
+                TargetDefinitionId = input.TargetDefinitionId,
+                OwnerId = AbpSession.UserId.Value
+
+            });
+            return MapToEntityDto(result);
         }
     }
 }

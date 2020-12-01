@@ -1,5 +1,7 @@
 ﻿using Abp.Domain.Repositories;
 using Abp.UI;
+using Fanap.DataLabeling.Accounting;
+using Fanap.DataLabeling.Authorization.Users;
 using Fanap.DataLabeling.Datasets;
 using Fanap.DataLabeling.Targets;
 using Microsoft.AspNetCore.Mvc.Formatters;
@@ -14,13 +16,17 @@ namespace Fanap.DataLabeling.Credit
 {
     public class CreditAppService : DataLabelingAppServiceBase
     {
+        private readonly IRepository<User, long> userRepo;
+        private readonly IRepository<Transaction, Guid> transactionRepo;
         private readonly IRepository<UserTarget, Guid> targetRepo;
         private readonly IRepository<AnswerLog, Guid> answerRepo;
         private readonly IRepository<DatasetItem, Guid> datasetItemRepo;
         private readonly IRepository<Dataset, Guid> datasetRepo;
 
-        public CreditAppService(IRepository<UserTarget, Guid> targetRepo, IRepository<AnswerLog, Guid> answerRepo, IRepository<DatasetItem, Guid> datasetItemRepo, IRepository<Dataset, Guid> datasetRepo)
+        public CreditAppService(IRepository<User, long> userRepo, IRepository<Transaction, Guid> transactionRepo, IRepository<UserTarget, Guid> targetRepo, IRepository<AnswerLog, Guid> answerRepo, IRepository<DatasetItem, Guid> datasetItemRepo, IRepository<Dataset, Guid> datasetRepo)
         {
+            this.userRepo = userRepo;
+            this.transactionRepo = transactionRepo;
             this.targetRepo = targetRepo;
             this.answerRepo = answerRepo;
             this.datasetItemRepo = datasetItemRepo;
@@ -68,17 +74,53 @@ namespace Fanap.DataLabeling.Credit
                 };
             var bonusesFraction = G - correctGoldenAnswersCount;
             var result = middle * (Math.Pow(Convert.ToDouble(T), Convert.ToDouble(bonusesFraction))) + Convert.ToDouble(UMin);
-            userSpecificTarget.TargetDefinition.DataSet = null;
+            var dto = ObjectMapper.Map<TargetDefinitionDto>(userSpecificTarget.TargetDefinition);
+            dto.DataSet = null;
             return new GetCreditOutput
             {
-                Target = userSpecificTarget.TargetDefinition,
+                Target = dto,
                 Credit = Convert.ToDecimal(result),
             };
         }
 
-        public async Task<GetCreditOutput> CollectCredit(GetCreditInput input)
+        public async Task<TransactionDto> CollectCredit(GetCreditInput input)
         {
-            throw new NotImplementedException("should insert proper transaction based on credit");
+            var dataset = await datasetRepo.GetAsync(input.DataSetId);
+
+            if (!dataset.IsActive || dataset.LabelingStatus != LabelingStatus.Finished)
+                throw new UserFriendlyException("برای دریافت مبلغ اعتبار، عملیات برچسب زنی دیتاست باید تمام شده باشد.");
+            var creditResult = await GetCredit(input);
+            var alreadyCollected = transactionRepo.GetAll().Any(ff => ff.OwnerId == input.UserId && ff.ReferenceDataSetId == input.DataSetId && ff.Reason == TransactionReason.CollectCredit);
+            if (alreadyCollected)
+                throw new UserFriendlyException("مبلغ اعتبار این دیتاست قبلا جمع‌آوری شده است.");
+
+            var transaction = new Transaction
+            {
+                CreditAmount = Math.Round(creditResult.Credit / 1000) * 1000,
+                OwnerId = input.UserId,
+                Reason = TransactionReason.CollectCredit,
+                ReferenceDataSetId = input.DataSetId
+            };
+            transaction = transactionRepo.Insert(transaction);
+            transaction.ReferenceDataSet = null;
+            transaction.Owner = null;
+
+
+            return ObjectMapper.Map<TransactionDto>(transaction);
         }
+
+        //public async Task<TransferToUserResult> TransferToUser(TransactionDto transaction)
+        //{
+        //    var user = await userRepo.GetAsync(transaction.OwnerId);
+        //    var podContactId = user.PodContactId;
+        //    if (podContactId == 0)
+        //        throw new UserFriendlyException("This user has not been set as contact.");
+
+
+        //}
+    }
+
+    public class TransferToUserResult
+    {
     }
 }

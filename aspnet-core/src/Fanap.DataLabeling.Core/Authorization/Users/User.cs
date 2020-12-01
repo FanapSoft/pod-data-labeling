@@ -7,6 +7,7 @@ namespace Fanap.DataLabeling.Authorization.Users
 {
     public class User : AbpUser<User>
     {
+        public long PodContactId { get; set; }
         public string ProfileImage { get; set; }
         public long PodUserId { get; set; }
         public bool IsImported { get; set; }

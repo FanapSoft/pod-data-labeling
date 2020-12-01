@@ -119,15 +119,22 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
                     Logger.Info($"{nameof(user)} : {user}");
 
                     if (user == null)
-                    {
                         user = await ImportUserFromPodAsync(profileInfo);
-                        CurrentUnitOfWork.SaveChanges();
-                    }
                     else
-                    {
                         await EditUserProfileBasedOnPod(user, profileInfo);
-                        CurrentUnitOfWork.SaveChanges();
+
+                    try
+                    {
+                        var contact = await _service.AddContactAsync(SettingManager.GetSettingValue(AppSettingNames.PodApiToken), profileInfo.Username);
+                        user.PodContactId = contact.Id;
+
                     }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Error in adding user as contact", ex);
+                    }
+
+                    CurrentUnitOfWork.SaveChanges();
 
                     var phone = GetIndividualUserPhoneAsync(profileInfo);
 
@@ -149,13 +156,11 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
                     var accessToken = CreateAccessToken(CreateJwtClaims(loginResult.Identity));
                     var encryptedAccessToken = GetEncryptedAccessToken(accessToken);
 
-
                     var redurectUrl = string.Empty;
                     if (local != null && local.Value)
                         redurectUrl = "http://localhost:8080/loggedIn";
                     else
                         redurectUrl = SettingManager.GetSettingValue(AppSettingNames.AuthenticationRedirectUrl);
-
                     var base64Token = Convert.ToBase64String(Encoding.UTF8.GetBytes(accessToken));
                     Response.Redirect($"{redurectUrl}/{user.Id}/?token={base64Token}");
                 }
