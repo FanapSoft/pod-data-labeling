@@ -16,10 +16,13 @@ namespace Fanap.DataLabeling.Targets
         public DatasetDto DataSet { get; set; }
 
         public int AnswerCount { get; set; }
+        public int GoldenCount { get; set; }
 
-        public decimal UMin { get; set; }
-        public decimal UMax { get; set; }
-        public decimal T { get; set; }
+        public double UMin { get; set; }
+        public double UMax { get; set; }
+        public double T { get; set; }
+        public double BonusTrue { get; set; }
+        public double BonusFalse { get; set; }
 
     }
 }

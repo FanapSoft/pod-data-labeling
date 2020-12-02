@@ -6,5 +6,7 @@ namespace Fanap.DataLabeling.DataSets
     {
         public Guid Id { get; set; }
 
+        public bool TargetEnded { get; set; }
+
     }
 }

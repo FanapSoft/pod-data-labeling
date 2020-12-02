@@ -4,14 +4,16 @@ using Fanap.DataLabeling.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Fanap.DataLabeling.Migrations
 {
     [DbContext(typeof(DataLabelingDbContext))]
-    partial class DataLabelingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20201201150037_UpdateTType")]
+    partial class UpdateTType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1323,11 +1325,11 @@ namespace Fanap.DataLabeling.Migrations
                     b.Property<long?>("CreatorUserId")
                         .HasColumnType("bigint");
 
-                    b.Property<double>("CreditAmount")
-                        .HasColumnType("float");
+                    b.Property<decimal>("CreditAmount")
+                        .HasColumnType("decimal(18,2)");
 
-                    b.Property<double>("DebitAmount")
-                        .HasColumnType("float");
+                    b.Property<decimal>("DebitAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<long?>("DeleterUserId")
                         .HasColumnType("bigint");
@@ -2045,12 +2047,6 @@ namespace Fanap.DataLabeling.Migrations
                     b.Property<int>("AnswerCount")
                         .HasColumnType("int");
 
-                    b.Property<double>("BonusFalse")
-                        .HasColumnType("float");
-
-                    b.Property<double>("BonusTrue")
-                        .HasColumnType("float");
-
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("datetime2");
 
@@ -2084,11 +2080,11 @@ namespace Fanap.DataLabeling.Migrations
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
-                    b.Property<double>("UMax")
-                        .HasColumnType("float");
+                    b.Property<decimal>("UMax")
+                        .HasColumnType("decimal(18,2)");
 
-                    b.Property<double>("UMin")
-                        .HasColumnType("float");
+                    b.Property<decimal>("UMin")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 

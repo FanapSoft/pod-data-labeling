@@ -16,6 +16,7 @@ using Fanap.DataLabeling.Configuration;
 using Abp.UI;
 using System.Runtime.Loader;
 using Fanap.DataLabeling.Pod.Dtos;
+using System.Security.Cryptography;
 
 namespace Fanap.DataLabeling.Clients.Pod
 {
@@ -224,43 +225,97 @@ namespace Fanap.DataLabeling.Clients.Pod
             }
         }
 
-        public async Task<ContactDto> TransferToUser(string contactId, decimal amount)
+        public async Task<HandshakeDto> Handshake()
         {
-            var address = settingManager.GetSettingValue(AppSettingNames.PodApiBaseAddress);
-            var businessAccessToken = settingManager.GetSettingValue(AppSettingNames.PodApiToken);
+            var apiToken = settingManager.GetSettingValue(AppSettingNames.PodApiToken);
 
             var client = CreateClient();
-            var url = $"{address}/nzh/addContacts";
-            var timeStamp = DateTime.Now.Ticks.ToString();
+            var url = $"https://accounts.pod.ir/handshake/users";
+            using (var httpRequest = new HttpRequestMessage(HttpMethod.Post, url))
+            {
+                var parameters = new List<KeyValuePair<string, string>>
+                {
+                    new KeyValuePair<string, string>("keyAlgorithm", "RSA")
+                };
+
+                httpRequest.Content = new FormUrlEncodedContent(parameters);
+                httpRequest.Headers.Add($"Authorization", $"Bearer {apiToken}");
+
+                var httpResponse = await client.SendAsync(httpRequest);
+
+                var body = await httpResponse.Content.ReadAsStringAsync();
+
+                EnsureSuccessfulResponse(httpResponse, body, "سرویس handshake");
+
+                var result = JsonConvert.DeserializeObject<HandshakeDto>(body);
+                return result;
+
+            }
+        }
+        public static byte[] HashAndSignBytes(byte[] DataToSign, string privateKey)
+        {
+            try
+            {
+                // Create a new instance of RSACryptoServiceProvider using the
+                // key from RSAParameters.
+                RSACryptoServiceProvider RSAalg = new RSACryptoServiceProvider();
+                RSAalg.FromXmlString(privateKey);
+                // Hash and sign the data. Pass a new instance of SHA256
+                // to specify the hashing algorithm.
+                return RSAalg.SignData(DataToSign, SHA256.Create());
+            }
+            catch (CryptographicException e)
+            {
+                return null;
+            }
+        }
+
+        public async Task<TransferFundToContactDto> TransferFundToContact(string contactId, decimal amount)
+        {
+            var address = settingManager.GetSettingValue(AppSettingNames.PodApiBaseAddress);
+            var apiToken = settingManager.GetSettingValue(AppSettingNames.PodApiToken);
+            var client = CreateClient();
+            var unixTimestamp = DateTime.UtcNow.ToUnixtime();
+            var handshake = await Handshake();
+
+            ASCIIEncoding ByteConverter = new ASCIIEncoding();
+            var signRaw = @$"timestamp: {unixTimestamp}
+userid: {handshake.User.Id}
+contactid: {contactId}
+amount: {(int)amount}";
+
+            byte[] originalData = ByteConverter.GetBytes(signRaw);
+
+            // Hash and sign the data.
+            var signedData = HashAndSignBytes(originalData, handshake.PrivateKey);
+
+            var url = $"{address}/nzh/transferToContactWithSign";
             using (var httpRequest = new HttpRequestMessage(HttpMethod.Post, url))
             {
                 var parameters = new List<KeyValuePair<string, string>>
                 {
                     new KeyValuePair<string, string>("contactId", contactId),
-                    new KeyValuePair<string, string>("uniqueId", DateTime.Now.Ticks.ToString()),
-                    new KeyValuePair<string, string>("amount", ""),
-                    new KeyValuePair<string, string>("timestamp", timeStamp.ToString()),
-                    new KeyValuePair<string, string>("sign", ""),
-                    new KeyValuePair<string, string>("cellphoneNumber", ""),
-                    new KeyValuePair<string, string>("email", ""),
-                    //new KeyValuePair<string, string>("typeCode", null),
+                    new KeyValuePair<string, string>("amount", ((int)amount).ToString()),
+                    new KeyValuePair<string, string>("timestamp", unixTimestamp.ToString()),
+                    new KeyValuePair<string, string>("sign", Encoding.UTF8.GetString(signedData)),
+                    new KeyValuePair<string, string>("keyId", handshake.KeyId),
+                    //new KeyValuePair<string, string>("currencyCode", ""),
+                    //new KeyValuePair<string, string>("description", ""),
+                    new KeyValuePair<string, string>("uniqueId", Guid.NewGuid().ToString("N")),
                 };
-                var signContent = @$"timestamp: {timeStamp}
-userid: 3174
-contactid: 5105
-amount: 2000";
+
                 httpRequest.Content = new FormUrlEncodedContent(parameters);
-                httpRequest.Headers.Add("_token_", new List<string>() { businessAccessToken });
+                httpRequest.Headers.Add("_token_", new List<string>() { apiToken });
                 httpRequest.Headers.Add("_token_issuer_", new List<string>() { "1" });
 
                 var httpResponse = await client.SendAsync(httpRequest);
 
                 var body = await httpResponse.Content.ReadAsStringAsync();
 
-                EnsureSuccessfulResponse(httpResponse, body, "سرویس افزودن مخاطب");
+                EnsureSuccessfulResponse(httpResponse, body, "سرویس TransferToContact");
 
-                var result = JsonConvert.DeserializeObject<PodResult<ContactDto[]>>(body);
-                return result.Result.First();
+                var result = JsonConvert.DeserializeObject<PodResult<TransferFundToContactDto>>(body);
+                return result.Result;
             }
         }
 
@@ -403,5 +458,6 @@ amount: 2000";
                 return result;
             }
         }
+
     }
 }

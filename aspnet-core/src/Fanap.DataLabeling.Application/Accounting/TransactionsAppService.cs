@@ -25,10 +25,9 @@ namespace Fanap.DataLabeling.DataSets
     }
     public class BalanceOutput
     {
-
-        public decimal DebitAmount { get; set; }
-        public decimal CreditAmount { get; set; }
-        public decimal Total { get; set; }
+        public double DebitAmount { get; set; }
+        public double CreditAmount { get; set; }
+        public double Total { get; set; }
     }
     public class TransactionDto : FullAuditedEntityDto<Guid>
     {

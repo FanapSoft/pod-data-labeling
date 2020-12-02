@@ -21,6 +21,8 @@ namespace Fanap.DataLabeling.Reports
         public string Description { get; set; }
         public decimal TotalBudget { get; set; }
         public Guid? RandomItemId { get; set; }
+        public LabelingStatus LabelingStatus { get; set; }
+        public long ItemsCount { get; set; }
         public int AnswerBudgetCountPerUser { get; set; }
         public DateTime CreationTime { get; internal set; }
     }
@@ -104,6 +106,7 @@ namespace Fanap.DataLabeling.Reports
             if (input.MaxResultCount == 0)
                 input.MaxResultCount = 10;
             var totalCount = datasetRepo.Count();
+
             var query = await datasetRepo.GetAll().Select(ff => new DatasetReportOutput
             {
                 Id = ff.Id,
@@ -111,11 +114,13 @@ namespace Fanap.DataLabeling.Reports
                 Name = ff.Name,
                 TotalBudget = ff.TotalBudget,
                 CreationTime = ff.CreationTime,
+                LabelingStatus = ff.LabelingStatus,
                 AnswerBudgetCountPerUser = ff.AnswerBudgetCountPerUser
             }).OrderByDescending(ff => ff.CreationTime).Take(input.MaxResultCount).ToListAsync();
 
             foreach (var item in query)
             {
+                item.ItemsCount = datasetItemRepo.Count(ff => ff.DatasetID == item.Id);
                 item.RandomItemId = datasetItemRepo.GetAll()
                     .Where(ff => ff.DatasetID == item.Id)
                     .OrderBy(ff => Guid.NewGuid()).FirstOrDefault()?.Id;

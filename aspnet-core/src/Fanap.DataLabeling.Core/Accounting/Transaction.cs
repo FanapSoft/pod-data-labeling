@@ -18,8 +18,8 @@ namespace Fanap.DataLabeling.Accounting
     {
         public long OwnerId { get; set; }
         public User Owner { get; set; }
-        public decimal DebitAmount { get; set; }
-        public decimal CreditAmount { get; set; }
+        public double DebitAmount { get; set; }
+        public double CreditAmount { get; set; }
         public TransactionReason Reason { get; set; }
         public string ReasonDescription { get; set; }
         public Guid? ReferenceDataSetId { get; set; }

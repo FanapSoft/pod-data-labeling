@@ -7,6 +7,7 @@ namespace Fanap.DataLabeling.DataSets
 {
     public class QuestionDto
     {
+        public bool TargetEnded { get; set; }
         public bool G { get; set; }
         public Guid DatasetItemId { get; set; }
         public AnswerType AnswerType { get; set; }

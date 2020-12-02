@@ -6,8 +6,6 @@ using Fanap.DataLabeling.Sessions.Dto;
 
 namespace Fanap.DataLabeling.Sessions
 {
-    [RemoteService(IsEnabled = false)]
-
     public class SessionAppService : DataLabelingAppServiceBase, ISessionAppService
     {
         [DisableAuditing]

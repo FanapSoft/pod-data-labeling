@@ -79,7 +79,7 @@ namespace Fanap.DataLabeling.Credit
             return new GetCreditOutput
             {
                 Target = dto,
-                Credit = Convert.ToDecimal(result),
+                Credit = result,
             };
         }
 
@@ -102,25 +102,8 @@ namespace Fanap.DataLabeling.Credit
                 ReferenceDataSetId = input.DataSetId
             };
             transaction = transactionRepo.Insert(transaction);
-            transaction.ReferenceDataSet = null;
-            transaction.Owner = null;
-
 
             return ObjectMapper.Map<TransactionDto>(transaction);
         }
-
-        //public async Task<TransferToUserResult> TransferToUser(TransactionDto transaction)
-        //{
-        //    var user = await userRepo.GetAsync(transaction.OwnerId);
-        //    var podContactId = user.PodContactId;
-        //    if (podContactId == 0)
-        //        throw new UserFriendlyException("This user has not been set as contact.");
-
-
-        //}
-    }
-
-    public class TransferToUserResult
-    {
     }
 }

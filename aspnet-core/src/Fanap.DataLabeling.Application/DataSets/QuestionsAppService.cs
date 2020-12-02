@@ -7,6 +7,7 @@ using Abp.Linq.Extensions;
 using Abp.UI;
 using Fanap.DataLabeling.Datasets;
 using Fanap.DataLabeling.Labels;
+using Fanap.DataLabeling.Targets;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -28,12 +29,21 @@ namespace Fanap.DataLabeling.DataSets
     [AbpAuthorize]
     public class QuestionsAppService : ApplicationService, IQuestionsAppService
     {
+        private readonly IRepository<AnswerLog, Guid> answerLogRepo;
+        private readonly IRepository<UserTarget, Guid> targetRepo;
         private readonly IRepository<Label, Guid> labelRepo;
         private readonly IRepository<Dataset, Guid> dataSetRepo;
         private readonly IRepository<DatasetItem, Guid> dataSetItemRepo;
 
-        public QuestionsAppService(IRepository<Label, Guid> labelRepo, IRepository<Dataset, Guid> dataSetRepo, IRepository<DatasetItem, Guid> dataSetItemRepo)
+        public QuestionsAppService(
+            IRepository<AnswerLog, Guid> answerLogRepo,
+            IRepository<UserTarget, Guid> targetRepo,
+            IRepository<Label, Guid> labelRepo,
+            IRepository<Dataset, Guid> dataSetRepo, 
+            IRepository<DatasetItem, Guid> dataSetItemRepo)
         {
+            this.answerLogRepo = answerLogRepo;
+            this.targetRepo = targetRepo;
             this.labelRepo = labelRepo;
             this.dataSetRepo = dataSetRepo;
             this.dataSetItemRepo = dataSetItemRepo;
@@ -72,6 +82,7 @@ namespace Fanap.DataLabeling.DataSets
         }
         public async Task<QuestionDto> GetQuestion(GetQuestionInput input)
         {
+            var userId = AbpSession.UserId.Value;
             var dataSet = await dataSetRepo
                 .GetAllIncluding(ff => ff.AnswerOptions)
                 .SingleOrDefaultAsync(ff => ff.Id == input.DataSetId);
@@ -80,6 +91,20 @@ namespace Fanap.DataLabeling.DataSets
                 throw new UserFriendlyException($"DataSet not found with id {input.DataSetId}");
             if (dataSet.AnswerOptions == null || !dataSet.AnswerOptions.Any())
                 throw new UserFriendlyException($"DataSet doest not have its answer options configured");
+
+            var userSpecificTarget = await targetRepo.GetAllIncluding(ff => ff.TargetDefinition).OrderBy(ff => ff.CreationTime).LastOrDefaultAsync(ff => ff.TargetDefinition.DataSetId == input.DataSetId && ff.OwnerId == userId);
+            if (userSpecificTarget == null)
+                return new QuestionDto
+                {
+                    TargetEnded = true
+                };
+
+            var totalUsersAnswer = answerLogRepo.Count(ff => ff.CreatorUserId == userId && ff.DataSetId == input.DataSetId);
+            if (totalUsersAnswer >= userSpecificTarget.TargetDefinition.AnswerCount)
+                return new QuestionDto
+                {
+                    TargetEnded = true
+                };
 
             var dataSetItem = await dataSetItemRepo.GetAllIncluding(ff => ff.Label).SingleOrDefaultAsync(ff => ff.Id == input.DataSetItemId);
             if (dataSetItem == null)
@@ -97,8 +122,8 @@ namespace Fanap.DataLabeling.DataSets
             return question;
         }
 
-        public async Task<IEnumerable<LabelDto>> GetRandomLabel(GetRandomLabelInput input) {
-
+        public async Task<IEnumerable<LabelDto>> GetRandomLabel(GetRandomLabelInput input)
+        {
             var query = labelRepo.GetAll().Where(ff => ff.DatasetId == input.DataSetId).OrderBy(ff => Guid.NewGuid()).Take(input.Count);
             return (await query.ToListAsync()).Select(ff => ObjectMapper.Map<LabelDto>(ff));
         }

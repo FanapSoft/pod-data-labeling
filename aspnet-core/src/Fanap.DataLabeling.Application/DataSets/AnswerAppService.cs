@@ -8,6 +8,7 @@ using Abp.Linq.Extensions;
 using Abp.UI;
 using Fanap.DataLabeling.Authorization;
 using Fanap.DataLabeling.Datasets;
+using Fanap.DataLabeling.Targets;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
@@ -40,11 +41,13 @@ namespace Fanap.DataLabeling.DataSets
 
     public class AnswersAppService : AsyncCrudAppService<AnswerLog, AnswerLogDto, Guid, GetAllAnswerLogsInput>, IAnswersAppService
     {
+        private readonly IRepository<UserTarget, Guid> targetRepo;
         private readonly IRepository<Dataset, Guid> datasetRepo;
         private readonly IRepository<AnswerLog, Guid> answerLogRepo;
         private readonly IQuestionsAppService questionAppService;
 
         public AnswersAppService(
+            IRepository<UserTarget, Guid> targetRepo,
             IRepository<AnswerLog, Guid> repository,
             IRepository<Dataset, Guid> datasetRepo,
             IRepository<DatasetItem, Guid> datasetItemRepo,
@@ -53,6 +56,7 @@ namespace Fanap.DataLabeling.DataSets
         {
             this.CreatePermissionName = PermissionNames.Pages_Roles;
             this.DeletePermissionName = PermissionNames.Pages_Roles;
+            this.targetRepo = targetRepo;
             this.datasetRepo = datasetRepo;
             this.answerLogRepo = answerLogRepo;
             this.questionAppService = questionAppService;
@@ -109,6 +113,7 @@ namespace Fanap.DataLabeling.DataSets
         }
         public async Task<SubmitAnswerOutput> SubmitAnswer(SubmitAnswerInput input)
         {
+            var userId = AbpSession.UserId.Value;
             var foundDataSet = datasetRepo.GetAll().SingleOrDefault(ff => ff.Id == input.DataSetId);
             if (foundDataSet == null)
                 throw new UserFriendlyException("Dataset not found");
@@ -119,12 +124,17 @@ namespace Fanap.DataLabeling.DataSets
             if (input.Ignored && input.IgnoreReason.IsNullOrEmpty())
                 throw new UserFriendlyException("Ignore reason is required.");
 
+            var userSpecificTarget = await targetRepo.GetAllIncluding(ff => ff.TargetDefinition).OrderBy(ff => ff.CreationTime).LastOrDefaultAsync(ff => ff.TargetDefinition.DataSetId == input.DataSetId && ff.OwnerId == userId);
+            if (userSpecificTarget == null)
+                throw new UserFriendlyException("User does not have an active target.");
 
-            //var question = questionAppService.GetQuestion(new GetQuestionInput { DataSetId = input.DataSetId, DataSetItemId = input.DataSetItemId });
+            var totalUsersAnswer = answerLogRepo.Count(ff => ff.CreatorUserId == userId && ff.DataSetId == input.DataSetId);
+            if (totalUsersAnswer >= userSpecificTarget.TargetDefinition.AnswerCount)
+                return new SubmitAnswerOutput
+                {
+                    TargetEnded = true
+                };
 
-            //var serializerSetting = new JsonSerializerSettings();
-            //serializerSetting.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-            //serializerSetting.NullValueHandling = NullValueHandling.Ignore;
             var log = new AnswerLog()
             {
                 Answer = input.AnswerIndex,
