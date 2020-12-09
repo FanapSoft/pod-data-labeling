@@ -9,25 +9,27 @@ using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Fanap.DataLabeling.DataSets
 {
+    public class SetGoldenInput : EntityDto<Guid>
+    {
+        [Required]
+        public bool IsGoldenData { get; set; }
+    }
     public class DataSetItemsGetAllInput : PagedAndSortedResultRequestDto
     {
         public string LabelName { get; set; }
         public Guid? DataSetId { get; set; }
-        public bool? IsGoldenData { get; set; } 
+        public bool? IsGoldenData { get; set; }
         public bool? OnlyNonDecidedGoldens { get; set; }
     }
-    public interface IDataSetItemsAppService : IAsyncCrudAppService<DataSetItemDto, Guid, DataSetItemsGetAllInput>
-    {
-        Task<DataSetItemDto> SetGolden(EntityDto<Guid> dto);
-    }
     [AbpAuthorize]
-    public class DataSetItemsAppService : AsyncCrudAppService<DatasetItem, DataSetItemDto, Guid, DataSetItemsGetAllInput>, IDataSetItemsAppService
+    public class DataSetItemsAppService : AsyncCrudAppService<DatasetItem, DataSetItemDto, Guid, DataSetItemsGetAllInput>
     {
 
         public DataSetItemsAppService(IRepository<DatasetItem, Guid> repository) : base(repository)
@@ -43,10 +45,12 @@ namespace Fanap.DataLabeling.DataSets
                 .WhereIf(input.DataSetId != null, ff => ff.DatasetID == input.DataSetId);
         }
 
-        public async Task<DataSetItemDto> SetGolden(EntityDto<Guid> dto)
+        public async Task<DataSetItemDto> SetGolden(SetGoldenInput dto)
         {
             var found = await GetAsync(dto);
-            found.IsGoldenData = true;
+            found.IsGoldenData = dto.IsGoldenData;
+            if (found.IsGoldenData)
+                found.ConfirmedGoldenData = true;
             var result = await UpdateAsync(found);
             return result;
         }
