@@ -1,6 +1,7 @@
 ﻿using Abp.Application.Services;
 using Abp.Application.Services.Dto;
 using Abp.Authorization;
+using Abp.AutoMapper;
 using Abp.Domain.Repositories;
 using Abp.Linq.Extensions;
 using Fanap.DataLabeling.Accounting;
@@ -29,21 +30,13 @@ namespace Fanap.DataLabeling.DataSets
         public double CreditAmount { get; set; }
         public double Total { get; set; }
     }
-    public class TransactionDto : FullAuditedEntityDto<Guid>
-    {
-        public decimal DebitAmount { get; set; }
-        public decimal CreditAmount { get; set; }
-        public TransactionReason Reason { get; set; }
-        public string ReasonDescription { get; set; }
-        public Guid? ReferenceDataSetId { get; set; }
-    }
     public class TransactionsGetAllInput : PagedAndSortedResultRequestDto
     {
         public long? OwnerId { get; set; }
         public Guid? DataSetId { get; set; }
     }
     [AbpAuthorize]
-    public class TransactionsAppService : AsyncCrudAppService<Transaction, DataSetItemDto, Guid, TransactionsGetAllInput>
+    public class TransactionsAppService : AsyncCrudAppService<Transaction, TransactionDto, Guid, TransactionsGetAllInput>
     {
         
         public TransactionsAppService(IRepository<Transaction, Guid> repository) : base(repository)
@@ -61,7 +54,7 @@ namespace Fanap.DataLabeling.DataSets
 
             return base.CreateFilteredQuery(input)
                 .WhereIf(input.DataSetId != null, ff => ff.ReferenceDataSetId == input.DataSetId.Value)
-                .WhereIf(input.DataSetId != null, ff => ff.OwnerId == input.OwnerId.Value);
+                .WhereIf(input.OwnerId != null, ff => ff.OwnerId == input.OwnerId.Value);
         }
         public async Task<BalanceOutput> GetBalance(BalanceInput input)
         {

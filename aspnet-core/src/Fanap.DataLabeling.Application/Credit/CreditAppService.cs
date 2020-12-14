@@ -38,8 +38,7 @@ namespace Fanap.DataLabeling.Credit
             var dataset = datasetRepo.Get(input.DataSetId);
             var allGoldenAnswers = answerRepo
                 .GetAll()
-                .Where(ff => ff.DataSetId == input.DataSetId && ff.CreatorUserId == input.UserId && ff.DataSetItem.IsGoldenData && !ff.Ignored).Select(ff => new { ff.Id, ff.Answer });
-            var goldenAnswersCount = await allGoldenAnswers.CountAsync();
+                .Where(ff => !ff.CreditCalculated && ff.DataSetId == input.DataSetId && ff.CreatorUserId == input.UserId && ff.DataSetItem.IsGoldenData && !ff.Ignored).Select(ff => new { ff.Id, ff.Answer });
             var userSpecificTarget = await targetRepo.GetAllIncluding(ff => ff.TargetDefinition.DataSet).OrderBy(ff => ff.CreationTime).LastOrDefaultAsync(ff => ff.TargetDefinition.DataSetId == input.DataSetId && ff.OwnerId == input.UserId);
             if (userSpecificTarget == null)
                 throw new UserFriendlyException("There is no user specific target assigned to the current user in this dataset.");
@@ -48,20 +47,22 @@ namespace Fanap.DataLabeling.Credit
 
             var targetGoldenCount = userSpecificTarget.TargetDefinition.GoldenCount;
             var correctGoldenAsnwersToCredit = new List<dynamic>();
-            var incorrectCorrectGoldenAsnwersToCredit = new List<dynamic>();
+            var incorrectGoldenAsnwersToCredit = new List<dynamic>();
             var G = targetGoldenCount;
             var UMax = userSpecificTarget.TargetDefinition.UMax;
             var UMin = userSpecificTarget.TargetDefinition.UMin;
+            var bonusTrue = userSpecificTarget.TargetDefinition.BonusTrue;
+            var bonusFalse = userSpecificTarget.TargetDefinition.BonusFalse;
             var T = userSpecificTarget.TargetDefinition.T;
             foreach (var item in allGoldenAnswers.ToList())
             {
                 if (item.Answer != dataset.CorrectGoldenAnswerIndex)
-                    incorrectCorrectGoldenAsnwersToCredit.Add(item);
-
-                correctGoldenAsnwersToCredit.Add(item);
+                    incorrectGoldenAsnwersToCredit.Add(item);
+                else
+                    correctGoldenAsnwersToCredit.Add(item);
             }
             var correctGoldenAnswersCount = correctGoldenAsnwersToCredit.Count;
-            var middle = Convert.ToDouble(UMax - UMin);
+            var middle = Convert.ToDouble(UMax - UMin) * Math.Pow(T, Convert.ToDouble(G));
             if (correctGoldenAnswersCount == 0)
                 return new GetCreditOutput
                 {
@@ -72,12 +73,15 @@ namespace Fanap.DataLabeling.Credit
                 {
                     Credit = UMax
                 };
-            var bonusesFraction = G - correctGoldenAnswersCount;
-            var result = middle * (Math.Pow(Convert.ToDouble(T), Convert.ToDouble(bonusesFraction))) + Convert.ToDouble(UMin);
+            var result = middle * Math.Pow(bonusFalse, incorrectGoldenAsnwersToCredit.Count) * Math.Pow(bonusTrue, correctGoldenAnswersCount) + Convert.ToDouble(UMin);
+
             var dto = ObjectMapper.Map<TargetDefinitionDto>(userSpecificTarget.TargetDefinition);
             dto.DataSet = null;
             return new GetCreditOutput
             {
+                Correct = correctGoldenAnswersCount,
+                Incorrect = incorrectGoldenAsnwersToCredit.Count,
+                Middle = middle,
                 Target = dto,
                 Credit = result,
             };
@@ -87,21 +91,27 @@ namespace Fanap.DataLabeling.Credit
         {
             var dataset = await datasetRepo.GetAsync(input.DataSetId);
 
-            if (!dataset.IsActive || dataset.LabelingStatus != LabelingStatus.Finished)
-                throw new UserFriendlyException("برای دریافت مبلغ اعتبار، عملیات برچسب زنی دیتاست باید تمام شده باشد.");
             var creditResult = await GetCredit(input);
-            var alreadyCollected = transactionRepo.GetAll().Any(ff => ff.OwnerId == input.UserId && ff.ReferenceDataSetId == input.DataSetId && ff.Reason == TransactionReason.CollectCredit);
-            if (alreadyCollected)
-                throw new UserFriendlyException("مبلغ اعتبار این دیتاست قبلا جمع‌آوری شده است.");
 
             var transaction = new Transaction
             {
-                CreditAmount = Math.Round(creditResult.Credit / 1000) * 1000,
+                CreditAmount = creditResult.Credit,
                 OwnerId = input.UserId,
                 Reason = TransactionReason.CollectCredit,
                 ReferenceDataSetId = input.DataSetId
             };
             transaction = transactionRepo.Insert(transaction);
+
+            var allGoldenAnswers = await answerRepo.GetAll()
+                .Where(ff => !ff.CreditCalculated && ff.DataSetId == input.DataSetId && ff.CreatorUserId == input.UserId && ff.DataSetItem.IsGoldenData && !ff.Ignored)
+                .Select(ff => new { ff.Id })
+                .ToListAsync();
+            foreach (var item in allGoldenAnswers)
+            {
+                answerRepo.Update(item.Id, ff => ff.CreditCalculated = true);
+            }
+
+            CurrentUnitOfWork.SaveChanges();
 
             return ObjectMapper.Map<TransactionDto>(transaction);
         }

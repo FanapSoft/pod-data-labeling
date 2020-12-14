@@ -228,10 +228,8 @@ namespace Fanap.DataLabeling.Clients.Pod
             }
         }
 
-        public async Task<HandshakeDto> Handshake()
+        public async Task<HandshakeDto> Handshake(string token)
         {
-            var apiToken = settingManager.GetSettingValue(AppSettingNames.PodApiToken);
-
             var client = CreateClient();
             var url = $"https://accounts.pod.ir/handshake/users";
             using (var httpRequest = new HttpRequestMessage(HttpMethod.Post, url))
@@ -242,7 +240,7 @@ namespace Fanap.DataLabeling.Clients.Pod
                 };
 
                 httpRequest.Content = new FormUrlEncodedContent(parameters);
-                httpRequest.Headers.Add($"Authorization", $"Bearer {apiToken}");
+                httpRequest.Headers.Add($"Authorization", $"Bearer {token}");
 
                 var httpResponse = await client.SendAsync(httpRequest);
 
@@ -255,17 +253,20 @@ namespace Fanap.DataLabeling.Clients.Pod
 
             }
         }
-        public static byte[] HashAndSignBytes(byte[] DataToSign, string privateKey)
+        public static byte[] HashAndSignBytes(byte[] DataToSign, string key)
         {
             try
             {
                 // Create a new instance of RSACryptoServiceProvider using the
                 // key from RSAParameters.
                 RSACryptoServiceProvider RSAalg = new RSACryptoServiceProvider();
-                RSAalg.FromXmlString(privateKey);
+                RSAalg.ImportParameters(new RSAParameters()
+                {
+                    Modulus = Encoding.ASCII.GetBytes(key)
+                });
                 // Hash and sign the data. Pass a new instance of SHA256
                 // to specify the hashing algorithm.
-                return RSAalg.Encrypt(DataToSign, false);
+                return RSAalg.SignHash(DataToSign, HashAlgorithmName.SHA256.Name);
             }
             catch (CryptographicException e)
             {
@@ -273,20 +274,20 @@ namespace Fanap.DataLabeling.Clients.Pod
             }
         }
 
-        public async Task<TransferFundToContactDto> TransferFundToContact(string contactId, decimal amount)
+        public async Task<PodResult> TransferFundToContact(string token, string contactId, decimal amount)
         {
             var address = settingManager.GetSettingValue(AppSettingNames.PodApiBaseAddress);
             var apiToken = settingManager.GetSettingValue(AppSettingNames.PodApiToken);
             var client = CreateClient();
             var unixTimestamp = DateTime.UtcNow.ToUnixtime();
-            var handshake = await Handshake();
+            var handshake = await Handshake(token);
 
             var signRaw = @$"timestamp: {unixTimestamp}
 userid: {handshake.User.Id}
 contactid: {contactId}
 amount: {(int)amount}";
 
-            byte[] originalData = ASCIIEncoding.ASCII.GetBytes(signRaw);
+            byte[] originalData = ASCIIEncoding.UTF8.GetBytes(signRaw);
 
             // Hash and sign the data.
             var signedData = HashAndSignBytes(originalData, handshake.PrivateKey);
@@ -294,8 +295,8 @@ amount: {(int)amount}";
             var url = $"{address}/nzh/transferToContactWithSign/?contactId={contactId}&amount={(int)amount}&timestamp={unixTimestamp}&sign={sign}&keyId={handshake.KeyId}";
             using (var httpRequest = new HttpRequestMessage(HttpMethod.Get, url))
             {
-     
-                httpRequest.Headers.Add("_token_", new List<string>() { apiToken });
+
+                httpRequest.Headers.Add("_token_", new List<string>() { token });
                 httpRequest.Headers.Add("_token_issuer_", new List<string>() { "1" });
 
                 var httpResponse = await client.SendAsync(httpRequest);
@@ -304,8 +305,38 @@ amount: {(int)amount}";
 
                 EnsureSuccessfulResponse(httpResponse, body, "سرویس TransferToContact");
 
-                var result = JsonConvert.DeserializeObject<PodResult<TransferFundToContactDto>>(body);
-                return result.Result;
+                var result = JsonConvert.DeserializeObject<PodResult>(body);
+                return result;
+            }
+        }
+
+        public async Task<PodResult> ConfirmTransferFundToContact(string phoneNumber, string code)
+        {
+            var address = settingManager.GetSettingValue(AppSettingNames.PodApiBaseAddress);
+            var apiToken = settingManager.GetSettingValue(AppSettingNames.PodApiToken);
+            var client = CreateClient();
+
+            var url = $"{address}/nzh/biz/confirmTransferToContact";
+            using (var httpRequest = new HttpRequestMessage(HttpMethod.Get, url))
+            {
+                var parameters = new List<KeyValuePair<string, string>>
+                {
+                    new KeyValuePair<string, string>("cellphoneNumber", phoneNumber),
+                    new KeyValuePair<string, string>("code", code),
+                };
+
+                httpRequest.Content = new FormUrlEncodedContent(parameters);
+                httpRequest.Headers.Add("_token_", new List<string>() { apiToken });
+                httpRequest.Headers.Add("_token_issuer_", new List<string>() { "1" });
+
+                var httpResponse = await client.SendAsync(httpRequest);
+
+                var body = await httpResponse.Content.ReadAsStringAsync();
+
+                EnsureSuccessfulResponse(httpResponse, body, "سرویس ConfirmTransferToContact");
+
+                var result = JsonConvert.DeserializeObject<PodResult>(body);
+                return result;
             }
         }
 

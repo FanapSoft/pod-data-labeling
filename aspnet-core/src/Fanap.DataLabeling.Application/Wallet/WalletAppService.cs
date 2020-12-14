@@ -9,28 +9,11 @@ using Fanap.DataLabeling.DataSets;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Fanap.DataLabeling.Wallet
 {
-    public class TransferToUserResult
-    {
-        public string PhoneNumber { get; set; }
-    }
-    public class TransferToUserInput
-    {
-        public string PhoneNumber { get; set; }
-    }
-    public class ConfirmTransferToUserInput
-    {
-        public string Code { get; set; }
-    }
-    public class ConfirmTransferToUserResult
-    {
-
-    }
     [AbpAuthorize]
     public class WalletAppService : DataLabelingAppServiceBase
     {
@@ -66,9 +49,7 @@ namespace Fanap.DataLabeling.Wallet
             var podContactId = user.PodContactId;
             if (podContactId == 0)
                 throw new UserFriendlyException("This user has not been set as contact.");
-
-            var result = await podClient.TransferFundToContact(podContactId.ToString(), 1000);
-
+            await action.TryAsync(async token => await podClient.TransferFundToContact(token, podContactId.ToString(), 1000));
             return new TransferToUserResult()
             {
                 PhoneNumber = user.PhoneNumber
@@ -83,9 +64,11 @@ namespace Fanap.DataLabeling.Wallet
             var podContactId = user.PodContactId;
             if (podContactId == 0)
                 throw new UserFriendlyException("This user has not been set as contact.");
+            var result = await podClient.ConfirmTransferFundToContact(input.PhoneNumber, input.Code);
 
             return new ConfirmTransferToUserResult()
             {
+                
             };
         }
     }

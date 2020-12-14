@@ -9,6 +9,7 @@ namespace Fanap.DataLabeling.Datasets
 {
     public class AnswerLog: AuditedEntity<Guid>
     {
+        public bool CreditCalculated { get; set; }
         public bool Ignored { get; set; }
         public string IgnoreReason { get; set; }
         public Dataset DataSet { get; set; }
