@@ -59,6 +59,10 @@ namespace Fanap.DataLabeling.DataSets
             if (dataSet.AnswerOptions == null || !dataSet.AnswerOptions.Any())
                 throw new UserFriendlyException($"DataSet doest not have its answer options configured");
 
+            // get user target 
+            // get golden 
+            // get answer count for goldens
+
             // random golden item
             var goldendataSetItems = await dataSetItemRepo
                 .GetAllIncluding(ff => ff.Label)

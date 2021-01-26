@@ -1,9 +1,11 @@
-﻿using Abp.Authorization;
+﻿using Abp.Application.Services.Dto;
+using Abp.Authorization;
 using Abp.Domain.Repositories;
 using Abp.UI;
 using Fanap.DataLabeling.Accounting;
 using Fanap.DataLabeling.Authorization.Users;
 using Fanap.DataLabeling.Clients.Pod;
+using Fanap.DataLabeling.Clients.Pod.Dtos;
 using Fanap.DataLabeling.Credit;
 using Fanap.DataLabeling.DataSets;
 using Microsoft.AspNetCore.Mvc;
@@ -35,7 +37,7 @@ namespace Fanap.DataLabeling.Wallet
         {
             var userId = AbpSession.UserId.Value;
             var user = await userRepo.GetAsync(userId);
-            var balance = transAppService.GetBalance(new BalanceInput
+            var balance = await transAppService.GetBalance(new BalanceInput
             {
                 OwnerId = userId
             });
@@ -49,11 +51,26 @@ namespace Fanap.DataLabeling.Wallet
             var podContactId = user.PodContactId;
             if (podContactId == 0)
                 throw new UserFriendlyException("This user has not been set as contact.");
-            await action.TryAsync(async token => await podClient.TransferFundToContact(token, podContactId.ToString(), 1000));
+            await action.TryAsync(async token => await podClient.TransferFundToContact(token, podContactId.ToString(), Convert.ToDecimal(balance.Total)));
             return new TransferToUserResult()
             {
                 PhoneNumber = user.PhoneNumber
             };
+        }
+
+        public class TransferCreditToWalletTestDto
+        {
+            public string PodContactId { get; set; }
+            public string Token { get; set; }
+            public decimal Amount { get; set; }
+        }
+        [HttpPost]
+        [AbpAllowAnonymous]
+        public async Task<PodResult> TransferCreditToWalletTest(TransferCreditToWalletTestDto dto)
+        {
+            var podContactId = dto.PodContactId;
+            var result = await podClient.TransferFundToContact(dto.Token, podContactId.ToString(), dto.Amount);
+            return result;
         }
 
         [HttpPost]
@@ -68,7 +85,7 @@ namespace Fanap.DataLabeling.Wallet
 
             return new ConfirmTransferToUserResult()
             {
-                
+
             };
         }
     }
