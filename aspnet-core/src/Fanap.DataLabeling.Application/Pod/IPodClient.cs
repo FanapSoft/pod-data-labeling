@@ -10,6 +10,7 @@ namespace Fanap.DataLabeling.Clients.Pod
     public interface IPodClient: ITransientDependency
     {
         Task<PodResult> TransferFundToContact(string token, string contactId, decimal amount);
+        Task<PodResult<TransferToContact>> TransferToContact(string token, string contactId, decimal amount);
         Task<PodResult> ConfirmTransferFundToContact(string phoneNumber, string code);
         Task<ContactDto> AddContactAsync(string ownerAccessToken, string userName);
         Task<UserProfileInfo> EditUserProfileAsync(string podAccessToken, UserProfileInfo profile);

@@ -33,7 +33,7 @@ namespace Fanap.DataLabeling.Wallet
         }
 
         [HttpPost]
-        public async Task<TransferToUserResult> TransferCreditToWallet(TransferToUserInput input)
+        public async Task<TransferToUserResult> TransferCreditToWalletWithSign(TransferToUserInput input)
         {
             var userId = AbpSession.UserId.Value;
             var user = await userRepo.GetAsync(userId);
@@ -58,19 +58,30 @@ namespace Fanap.DataLabeling.Wallet
             };
         }
 
-        public class TransferCreditToWalletTestDto
-        {
-            public string PodContactId { get; set; }
-            public string Token { get; set; }
-            public decimal Amount { get; set; }
-        }
         [HttpPost]
-        [AbpAllowAnonymous]
-        public async Task<PodResult> TransferCreditToWalletTest(TransferCreditToWalletTestDto dto)
+        public async Task<TransferToUserResult> TransferCreditToWallet(TransferToUserInput input)
         {
-            var podContactId = dto.PodContactId;
-            var result = await podClient.TransferFundToContact(dto.Token, podContactId.ToString(), dto.Amount);
-            return result;
+            var userId = AbpSession.UserId.Value;
+            var user = await userRepo.GetAsync(userId);
+            var balance = await transAppService.GetBalance(new BalanceInput
+            {
+                OwnerId = userId
+            });
+            if (string.IsNullOrEmpty(user.PhoneNumber))
+            {
+                if (string.IsNullOrEmpty(input.PhoneNumber))
+                    throw new UserFriendlyException("حساب کاربری شما فاقد شماره تلفن است، و وارد کردن آن الزامی است.");
+                user.PhoneNumber = input.PhoneNumber;
+                await userRepo.UpdateAsync(user);
+            }
+            var podContactId = user.PodContactId;
+            if (podContactId == 0)
+                throw new UserFriendlyException("This user has not been set as contact.");
+            await action.TryAsync(async token => await podClient.TransferToContact(token, podContactId.ToString(), Convert.ToDecimal(balance.Total)));
+            return new TransferToUserResult()
+            {
+                PhoneNumber = user.PhoneNumber
+            };
         }
 
         [HttpPost]

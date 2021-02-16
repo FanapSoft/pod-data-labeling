@@ -274,6 +274,29 @@ namespace Fanap.DataLabeling.Clients.Pod
             }
         }
 
+        public async Task<PodResult<TransferToContact>> TransferToContact(string token, string contactId, decimal amount)
+        {
+            var address = settingManager.GetSettingValue(AppSettingNames.PodApiBaseAddress);
+            var apiToken = settingManager.GetSettingValue(AppSettingNames.PodApiToken);
+            var client = CreateClient();
+            var url = $"{address}/nzh/transferToContact/?contactId={contactId}&amount={(int)amount}";
+            using (var httpRequest = new HttpRequestMessage(HttpMethod.Get, url))
+            {
+
+                httpRequest.Headers.Add("_token_", new List<string>() { token });
+                httpRequest.Headers.Add("_token_issuer_", new List<string>() { "1" });
+
+                var httpResponse = await client.SendAsync(httpRequest);
+
+                var body = await httpResponse.Content.ReadAsStringAsync();
+
+                EnsureSuccessfulResponse(httpResponse, body, "سرویس TransferToContact");
+
+                var result = JsonConvert.DeserializeObject<PodResult<TransferToContact>>(body);
+                return result;
+            }
+        }
+
         public async Task<PodResult> TransferFundToContact(string token, string contactId, decimal amount)
         {
             var address = settingManager.GetSettingValue(AppSettingNames.PodApiBaseAddress);

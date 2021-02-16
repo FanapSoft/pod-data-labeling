@@ -72,16 +72,17 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
             _jwtCreator = jwtCreator;
         }
 
-        [HttpGet("{local:bool?}")]
-        public IActionResult CallPodAuthentication([FromRoute] bool? local)
+        [HttpGet]
+        public IActionResult CallPodAuthentication(string host, bool? local)
         {
             var uri = SettingManager.GetSettingValue(AppSettingNames.PodUri);
             var clientId = SettingManager.GetSettingValue(AppSettingNames.PodClientId);
-            var callbackUrl = string.Empty;
+            var requestHost = !string.IsNullOrEmpty(host) ? host : Request.Host.ToString();
+            string callbackUrl;
             if (local != null && local.Value)
-                callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{Request.Host}/pod/authentication/callback/true");
+                callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{requestHost}/pod/authentication/callback/true");
             else
-                callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{Request.Host}/pod/authentication/callback");
+                callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{requestHost}/pod/authentication/callback");
 
             var variables =
                 $"/authorize/?client_id={clientId}&response_type=code&redirect_uri={callbackUrl}&scope=profile";
@@ -89,8 +90,8 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
             return Redirect($"{uri}{variables}");
         }
 
-        [HttpGet("callback/{local:bool?}")]
-        public async Task Callback(string code, bool? local)
+        [HttpGet("callback")]
+        public async Task Callback(string code, string host, bool? local)
         {
             try
             {
@@ -98,12 +99,12 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
                 {
                     CurrentUnitOfWork.SetTenantId(1);
                     Logger.Info($"{nameof(code)} : {code}");
-
+                    var requestHost = !string.IsNullOrEmpty(host) ? host : Request.Host.ToString();
                     var callbackUrl = string.Empty;
                     if (local != null && local.Value)
-                        callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{Request.Host}/pod/authentication/callback/true");
+                        callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{requestHost}/pod/authentication/callback/true");
                     else
-                        callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{Request.Host}/pod/authentication/callback");
+                        callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{requestHost}/pod/authentication/callback");
 
                     var podToken = await _service.GetTokenAsync(WebUtility.UrlDecode(callbackUrl), code);
 
