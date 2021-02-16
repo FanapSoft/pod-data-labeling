@@ -75,6 +75,8 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
         [HttpGet]
         public IActionResult CallPodAuthentication(string host, bool? local)
         {
+            if (string.IsNullOrEmpty(host)) throw new UserFriendlyException("Host is required");
+
             var uri = SettingManager.GetSettingValue(AppSettingNames.PodUri);
             var clientId = SettingManager.GetSettingValue(AppSettingNames.PodClientId);
             var requestHost = !string.IsNullOrEmpty(host) ? host : Request.Host.ToString();
@@ -95,6 +97,8 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
         {
             try
             {
+                if (string.IsNullOrEmpty(host)) throw new UserFriendlyException("Host is required");
+
                 using (AbpSession.Use(1, null))
                 {
                     CurrentUnitOfWork.SetTenantId(1);
