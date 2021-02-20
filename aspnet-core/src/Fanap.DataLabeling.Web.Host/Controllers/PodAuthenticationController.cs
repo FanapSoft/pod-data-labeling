@@ -48,6 +48,7 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
         private readonly IRepository<StaticUser> staticUserRepo;
         private readonly IPodClient _service;
         private readonly IJwtCreator _jwtCreator;
+
         public PodAuthenticationController(
             IAccessTokenManager accessTokenManager,
             TokenAuthConfiguration tokenAuthConfiguration,
@@ -73,42 +74,41 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
         }
 
         [HttpGet]
-        public IActionResult CallPodAuthentication(string host, bool? local)
+        public IActionResult CallPodAuthentication(string host)
         {
-            if (string.IsNullOrEmpty(host)) throw new UserFriendlyException("Host is required");
+            if (string.IsNullOrEmpty(host)) throw new UserFriendlyException("Host is required.");
+        
+            HttpContext.Session.Set("Host", Encoding.ASCII.GetBytes(host));
 
             var uri = SettingManager.GetSettingValue(AppSettingNames.PodUri);
             var clientId = SettingManager.GetSettingValue(AppSettingNames.PodClientId);
-            var requestHost = !string.IsNullOrEmpty(host) ? host : Request.Host.ToString();
             string callbackUrl;
-            if (local != null && local.Value)
-                callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{requestHost}/pod/authentication/callback/true");
-            else
-                callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{requestHost}/pod/authentication/callback");
+
+            callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{Request.Host}/pod/authentication/callback");
 
             var variables =
                 $"/authorize/?client_id={clientId}&response_type=code&redirect_uri={callbackUrl}&scope=profile";
-
+            //http://localhost:21021/pod/authentication/callback?code=32b191e9a58649f39f419ca9d13bcdc5
             return Redirect($"{uri}{variables}");
         }
 
         [HttpGet("callback")]
-        public async Task Callback(string code, string host, bool? local)
+        public async Task Callback(string code)
         {
             try
             {
-                if (string.IsNullOrEmpty(host)) throw new UserFriendlyException("Host is required");
+                HttpContext.Session.TryGetValue("Host",out byte[] hostByte);
+                var host = Encoding.ASCII.GetString(hostByte);
+
+                if (string.IsNullOrEmpty(host)) throw new UserFriendlyException("Host is required.");
 
                 using (AbpSession.Use(1, null))
                 {
                     CurrentUnitOfWork.SetTenantId(1);
                     Logger.Info($"{nameof(code)} : {code}");
-                    var requestHost = !string.IsNullOrEmpty(host) ? host : Request.Host.ToString();
                     var callbackUrl = string.Empty;
-                    if (local != null && local.Value)
-                        callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{requestHost}/pod/authentication/callback/true");
-                    else
-                        callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{requestHost}/pod/authentication/callback");
+
+                    callbackUrl = WebUtility.UrlEncode($"{Request.Scheme}://{Request.Host}/pod/authentication/callback");
 
                     var podToken = await _service.GetTokenAsync(WebUtility.UrlDecode(callbackUrl), code);
 
@@ -161,11 +161,7 @@ namespace Fanap.DataLabeling.Web.Host.Controllers
                     var accessToken = CreateAccessToken(CreateJwtClaims(loginResult.Identity));
                     var encryptedAccessToken = GetEncryptedAccessToken(accessToken);
 
-                    var redurectUrl = string.Empty;
-                    if (local != null && local.Value)
-                        redurectUrl = "http://localhost:8080/loggedIn";
-                    else
-                        redurectUrl = SettingManager.GetSettingValue(AppSettingNames.AuthenticationRedirectUrl);
+                    var redurectUrl = $"{host}/loggedIn";
                     var base64Token = Convert.ToBase64String(Encoding.UTF8.GetBytes(accessToken));
                     Response.Redirect($"{redurectUrl}/{user.Id}/?token={base64Token}");
                 }

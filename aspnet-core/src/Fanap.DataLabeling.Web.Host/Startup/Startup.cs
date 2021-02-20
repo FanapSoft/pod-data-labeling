@@ -29,6 +29,7 @@ using System.Net.Http.Headers;
 using Fanap.DataLabeling.Authorization.Users;
 using Fanap.DataLabeling.Datasets;
 using Fanap.DataLabeling.Targets;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Fanap.DataLabeling.Web.Host.Startup
 {
@@ -71,7 +72,10 @@ namespace Fanap.DataLabeling.Web.Host.Startup
                 };
             });
 
-
+            services.AddSession(options => {
+                options.IdleTimeout = TimeSpan.FromMinutes(5);
+            });
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
 
             IdentityRegistrar.Register(services);
             AuthConfigurer.Configure(services, _appConfiguration);
@@ -140,6 +144,8 @@ namespace Fanap.DataLabeling.Web.Host.Startup
 
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
+            app.UseSession();
+
             app.UseUnitOfWork(options =>
             {
                 options.Filter = httpContext => httpContext.Request.Path.Value.StartsWith("/odata");
