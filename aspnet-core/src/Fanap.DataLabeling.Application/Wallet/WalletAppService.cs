@@ -51,7 +51,7 @@ namespace Fanap.DataLabeling.Wallet
             var podContactId = user.PodContactId;
             if (podContactId == 0)
                 throw new UserFriendlyException("This user has not been set as contact.");
-            await action.TryAsync(async token => await podClient.TransferFundToContact(token, podContactId.ToString(), Convert.ToDecimal(balance.Total)));
+            await action.TryAsync(async token => await podClient.TransferFundToContactWithSign(token, podContactId.ToString(), Convert.ToDecimal(balance.Total)));
             return new TransferToUserResult()
             {
                 PhoneNumber = user.PhoneNumber
@@ -77,7 +77,7 @@ namespace Fanap.DataLabeling.Wallet
             var podContactId = user.PodContactId;
             if (podContactId == 0)
                 throw new UserFriendlyException("This user has not been set as contact.");
-            await action.TryAsync(async token => await podClient.TransferToContact(token, podContactId.ToString(), Convert.ToDecimal(balance.Total)));
+            await podClient.TransferFundToContact(podContactId.ToString(), Convert.ToDecimal(balance.Total));
             return new TransferToUserResult()
             {
                 PhoneNumber = user.PhoneNumber

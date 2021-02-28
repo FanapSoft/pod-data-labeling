@@ -274,7 +274,7 @@ namespace Fanap.DataLabeling.Clients.Pod
             }
         }
 
-        public async Task<PodResult<TransferToContact>> TransferToContact(string token, string contactId, decimal amount)
+        public async Task<PodResult<TransferToContact>> TransferFundToContact(string contactId, decimal amount)
         {
             var address = settingManager.GetSettingValue(AppSettingNames.PodApiBaseAddress);
             var apiToken = settingManager.GetSettingValue(AppSettingNames.PodApiToken);
@@ -283,7 +283,7 @@ namespace Fanap.DataLabeling.Clients.Pod
             using (var httpRequest = new HttpRequestMessage(HttpMethod.Get, url))
             {
 
-                httpRequest.Headers.Add("_token_", new List<string>() { token });
+                httpRequest.Headers.Add("_token_", new List<string>() { apiToken });
                 httpRequest.Headers.Add("_token_issuer_", new List<string>() { "1" });
 
                 var httpResponse = await client.SendAsync(httpRequest);
@@ -297,7 +297,7 @@ namespace Fanap.DataLabeling.Clients.Pod
             }
         }
 
-        public async Task<PodResult> TransferFundToContact(string token, string contactId, decimal amount)
+        public async Task<PodResult> TransferFundToContactWithSign(string token, string contactId, decimal amount)
         {
             var address = settingManager.GetSettingValue(AppSettingNames.PodApiBaseAddress);
             var apiToken = settingManager.GetSettingValue(AppSettingNames.PodApiToken);

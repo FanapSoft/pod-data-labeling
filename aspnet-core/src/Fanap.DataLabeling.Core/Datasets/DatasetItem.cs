@@ -36,6 +36,9 @@ namespace Fanap.DataLabeling.Datasets
         public Label Label { get; set; }
         public Guid? LabelId { get; set; }
 
+        [MaxLength(1000)]
+        public string OriginFolderName { get; set; }
+
         public Dataset Dataset { get; set; }
         public Guid DatasetID { get; set; }
     }
