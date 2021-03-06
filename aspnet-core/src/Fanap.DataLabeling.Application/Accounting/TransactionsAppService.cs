@@ -20,7 +20,6 @@ namespace Fanap.DataLabeling.DataSets
 {
     public class BalanceInput
     {
-
         [Required]
         public long OwnerId { get; set; }
     }
@@ -29,6 +28,7 @@ namespace Fanap.DataLabeling.DataSets
         public double DebitAmount { get; set; }
         public double CreditAmount { get; set; }
         public double Total { get; set; }
+        public List<Guid?> DatasetIds { get; set; }
     }
     public class TransactionsGetAllInput : PagedAndSortedResultRequestDto
     {
@@ -56,16 +56,31 @@ namespace Fanap.DataLabeling.DataSets
                 .WhereIf(input.DataSetId != null, ff => ff.ReferenceDataSetId == input.DataSetId.Value)
                 .WhereIf(input.OwnerId != null, ff => ff.OwnerId == input.OwnerId.Value);
         }
+
         public async Task<BalanceOutput> GetBalance(BalanceInput input)
         {
-            var totalDebit = await Repository.GetAll().Where(ff => ff.OwnerId == input.OwnerId).SumAsync(ff => ff.DebitAmount);
-            var totalCredit = await Repository.GetAll().Where(ff => ff.OwnerId == input.OwnerId).SumAsync(ff => ff.CreditAmount);
+            var transactions = Repository.GetAll().Where(ff => ff.OwnerId == input.OwnerId && !ff.HasTransferedCredit);
+            var datasetIds = transactions.Select(_ => _.ReferenceDataSetId).Distinct().ToList();
+            var totalDebit = await transactions.SumAsync(ff => ff.DebitAmount);
+            var totalCredit = await transactions.SumAsync(ff => ff.CreditAmount);
+          
             return new BalanceOutput
             {
                 CreditAmount = totalCredit,
                 DebitAmount = totalDebit,
-                Total = totalCredit - totalDebit
+                Total = totalCredit - totalDebit,
+                DatasetIds= datasetIds
             };
+        }
+
+        public void UpdateTransferedCreditStatus(long ownerId)
+        {
+            var transactions = Repository.GetAll().Where(ff => ff.OwnerId == ownerId);
+
+            foreach (var transaction in transactions)
+            {
+                Repository.Update(transaction.Id, ff => ff.HasTransferedCredit = true);
+            }
         }
     }
 }

@@ -57,14 +57,18 @@ namespace Fanap.DataLabeling.Targets
         public async Task<TargetStatusOutput> GetCurrentTargetStatus(TargetStatusInput input)
         {
             var userId = AbpSession.UserId.Value;
-            var userSpecificTarget = await Repository.GetAllIncluding(ff => ff.TargetDefinition).OrderBy(ff => ff.CreationTime).LastOrDefaultAsync(ff => ff.TargetDefinition.DataSetId == input.DataSetId && ff.OwnerId == userId);
+
+            var userSpecificTarget = await Repository.GetAllIncluding(ff => ff.TargetDefinition).OrderBy(ff => ff.CreationTime)
+                .LastOrDefaultAsync(ff => ff.TargetDefinition.DataSetId == input.DataSetId && ff.OwnerId == userId);
+
+
             if (userSpecificTarget == null)
                 return new TargetStatusOutput
                 {
                     NoTarget = true
                 };
 
-            var totalUsersAnswer = answerLogRepo.Count(ff => ff.CreatorUserId == userId && ff.DataSetId == input.DataSetId);
+            var totalUsersAnswer = answerLogRepo.Count(ff => !ff.CreditCalculated && !ff.Ignored && ff.CreatorUserId == userId && ff.DataSetId == input.DataSetId);
             if (totalUsersAnswer >= userSpecificTarget.TargetDefinition.AnswerCount)
                 return new TargetStatusOutput
                 {

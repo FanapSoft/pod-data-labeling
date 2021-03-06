@@ -20,6 +20,9 @@ using System.Security.Cryptography;
 using System.Web;
 using Fanap.DataLabeling.Pod;
 using System.Net;
+using Fanap.DataLabeling.Credit;
+using Fanap.DataLabeling.DataSets;
+using Abp.Runtime.Session;
 
 namespace Fanap.DataLabeling.Clients.Pod
 {
@@ -29,15 +32,18 @@ namespace Fanap.DataLabeling.Clients.Pod
         private readonly ISettingManager settingManager;
         private readonly IHttpClientFactory _clientFactory;
         private readonly IMapper _mapper;
+        private readonly TransactionsAppService _transactionsAppService;
 
         public PodClient(
             ISettingManager settingManager,
             IHttpClientFactory clientFactory,
-            IMapper mapper)
+            IMapper mapper,
+            TransactionsAppService transactionsAppService)
         {
             this.settingManager = settingManager;
             _clientFactory = clientFactory;
             _mapper = mapper;
+            _transactionsAppService = transactionsAppService;
         }
 
         private HttpClient CreateClient()
@@ -274,8 +280,9 @@ namespace Fanap.DataLabeling.Clients.Pod
             }
         }
 
-        public async Task<PodResult<TransferToContact>> TransferFundToContact(string contactId, decimal amount)
+        public async Task<PodResult<TransferToContact>> TransferFundToContact(long userId,string contactId, BalanceOutput balance)
         {
+            var amount = Convert.ToDecimal(balance.Total);          
             var address = settingManager.GetSettingValue(AppSettingNames.PodApiBaseAddress);
             var apiToken = settingManager.GetSettingValue(AppSettingNames.PodApiToken);
             var client = CreateClient();
@@ -291,6 +298,8 @@ namespace Fanap.DataLabeling.Clients.Pod
                 var body = await httpResponse.Content.ReadAsStringAsync();
 
                 EnsureSuccessfulResponse(httpResponse, body, "سرویس TransferToContact");
+
+                _transactionsAppService.UpdateTransferedCreditStatus(userId);
 
                 var result = JsonConvert.DeserializeObject<PodResult<TransferToContact>>(body);
                 return result;

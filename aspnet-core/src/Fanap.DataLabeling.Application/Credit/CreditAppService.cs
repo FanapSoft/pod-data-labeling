@@ -36,14 +36,22 @@ namespace Fanap.DataLabeling.Credit
         public async Task<GetCreditOutput> GetCredit(GetCreditInput input)
         {
             var dataset = datasetRepo.Get(input.DataSetId);
-            var allGoldenAnswers = answerRepo
+            var allAnswers = answerRepo
                 .GetAll()
-                .Where(ff => !ff.CreditCalculated && ff.DataSetId == input.DataSetId && ff.CreatorUserId == input.UserId && ff.DataSetItem.IsGoldenData && !ff.Ignored).Select(ff => new { ff.Id, ff.Answer });
+                .Where(ff => !ff.CreditCalculated && !ff.Ignored && ff.DataSetId == input.DataSetId && ff.CreatorUserId == input.UserId);
+
+            var allGoldenAnswers = allAnswers.Where(ff => ff.DataSetItem.IsGoldenData).Select(ff => new { ff.Id, ff.Answer });
+
             var userSpecificTarget = await targetRepo.GetAllIncluding(ff => ff.TargetDefinition.DataSet).OrderBy(ff => ff.CreationTime).LastOrDefaultAsync(ff => ff.TargetDefinition.DataSetId == input.DataSetId && ff.OwnerId == input.UserId);
             if (userSpecificTarget == null)
                 throw new UserFriendlyException("There is no user specific target assigned to the current user in this dataset.");
 
             var answerBudgetPerUser = userSpecificTarget.TargetDefinition.AnswerCount;
+
+            if (allAnswers.Count() < answerBudgetPerUser)
+            {
+                throw new UserFriendlyException("You haven't reached the target yet.");
+            }
 
             var targetGoldenCount = userSpecificTarget.TargetDefinition.GoldenCount;
             var correctGoldenAsnwersToCredit = new List<dynamic>();
@@ -100,12 +108,14 @@ namespace Fanap.DataLabeling.Credit
                 Reason = TransactionReason.CollectCredit,
                 ReferenceDataSetId = input.DataSetId
             };
+
             transaction = transactionRepo.Insert(transaction);
 
             var allGoldenAnswers = await answerRepo.GetAll()
                 .Where(ff => !ff.CreditCalculated && ff.DataSetId == input.DataSetId && ff.CreatorUserId == input.UserId && ff.DataSetItem.IsGoldenData && !ff.Ignored)
                 .Select(ff => new { ff.Id })
                 .ToListAsync();
+
             foreach (var item in allGoldenAnswers)
             {
                 answerRepo.Update(item.Id, ff => ff.CreditCalculated = true);

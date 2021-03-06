@@ -24,6 +24,6 @@ namespace Fanap.DataLabeling.Accounting
         public string ReasonDescription { get; set; }
         public Guid? ReferenceDataSetId { get; set; }
         public Dataset ReferenceDataSet { get; set; }
-
+        public bool HasTransferedCredit { get; set; }
     }
 }

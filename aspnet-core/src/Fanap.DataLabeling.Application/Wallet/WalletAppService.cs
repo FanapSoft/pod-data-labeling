@@ -67,6 +67,7 @@ namespace Fanap.DataLabeling.Wallet
             {
                 OwnerId = userId
             });
+
             if (string.IsNullOrEmpty(user.PhoneNumber))
             {
                 if (string.IsNullOrEmpty(input.PhoneNumber))
@@ -74,10 +75,12 @@ namespace Fanap.DataLabeling.Wallet
                 user.PhoneNumber = input.PhoneNumber;
                 await userRepo.UpdateAsync(user);
             }
+
             var podContactId = user.PodContactId;
             if (podContactId == 0)
                 throw new UserFriendlyException("This user has not been set as contact.");
-            await podClient.TransferFundToContact(podContactId.ToString(), Convert.ToDecimal(balance.Total));
+
+            await podClient.TransferFundToContact(userId,podContactId.ToString(), balance);
             return new TransferToUserResult()
             {
                 PhoneNumber = user.PhoneNumber
