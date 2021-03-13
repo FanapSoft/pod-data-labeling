@@ -152,7 +152,7 @@ namespace Fanap.DataLabeling.DataSets
             }
         }
 
-        protected async Task<string> GetItemLabel(Guid dataSetItemId)
+        public async Task<string> GetItemLabel(Guid dataSetItemId)
         {
             var dataSetItem = await dataSetItemRepo.GetAllIncluding(ff => ff.Label).SingleOrDefaultAsync(ff => ff.Id == dataSetItemId);
             if (dataSetItem == null)
