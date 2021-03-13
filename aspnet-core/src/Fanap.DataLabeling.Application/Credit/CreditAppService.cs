@@ -33,7 +33,7 @@ namespace Fanap.DataLabeling.Credit
             this.datasetRepo = datasetRepo;
         }
 
-        public async Task<GetCreditOutput> GetCredit(GetCreditInput input)
+        public async Task<GetCreditOutput> GetCredit(GetCreditInput input, bool checkTarget = false)
         {
             var dataset = datasetRepo.Get(input.DataSetId);
             var allAnswers = answerRepo
@@ -48,7 +48,7 @@ namespace Fanap.DataLabeling.Credit
 
             var answerBudgetPerUser = userSpecificTarget.TargetDefinition.AnswerCount;
 
-            if (allAnswers.Count() < answerBudgetPerUser)
+            if (checkTarget && (allAnswers.Count() < answerBudgetPerUser))
             {
                 throw new UserFriendlyException("You haven't reached the target yet.");
             }
@@ -99,7 +99,7 @@ namespace Fanap.DataLabeling.Credit
         {
             var dataset = await datasetRepo.GetAsync(input.DataSetId);
 
-            var creditResult = await GetCredit(input);
+            var creditResult = await GetCredit(input, true);
 
             var transaction = new Transaction
             {

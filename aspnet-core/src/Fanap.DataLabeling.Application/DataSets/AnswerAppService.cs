@@ -75,7 +75,7 @@ namespace Fanap.DataLabeling.DataSets
         {
             var result = await base.GetAllAsync(input);
             if (input.IncludeQuestion)
-                await SetQuestion(result);
+                await SetAnswerLabel(result);
             return result;
         }
         public override Task<AnswerLogDto> UpdateAsync(AnswerLogDto input)
@@ -84,6 +84,13 @@ namespace Fanap.DataLabeling.DataSets
             if (dataset.LabelingStatus == LabelingStatus.Finished)
                 throw new UserFriendlyException("You cannot edit the answer at this stage.");
             return base.UpdateAsync(input);
+        }
+        private async Task SetAnswerLabel(PagedResultDto<AnswerLogDto> result)
+        {
+            foreach (var item in result.Items)
+            {             
+                item.Title = await questionAppService.GetItemLabel(item.DataSetItemId);
+            }
         }
         private async Task SetQuestion(PagedResultDto<AnswerLogDto> result)
         {

@@ -14,5 +14,6 @@ namespace Fanap.DataLabeling.DataSets
         public Guid DataSetItemId { get; set; }
         public int Answer { get; set; }
         public string QuestionObject { get; set; }
+        public string Title { get; set; }
     }
 }

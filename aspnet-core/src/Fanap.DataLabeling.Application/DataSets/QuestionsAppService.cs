@@ -97,18 +97,18 @@ namespace Fanap.DataLabeling.DataSets
                 throw new UserFriendlyException($"DataSet doest not have its answer options configured");
 
             var userSpecificTarget = await targetRepo.GetAllIncluding(ff => ff.TargetDefinition).OrderBy(ff => ff.CreationTime).LastOrDefaultAsync(ff => ff.TargetDefinition.DataSetId == input.DataSetId && ff.OwnerId == userId);
-            if (userSpecificTarget == null)
-                return new QuestionDto
-                {
-                    TargetEnded = true
-                };
+            if (userSpecificTarget == null) throw new UserFriendlyException($"No target has been defined.");
+            //return new QuestionDto
+            //{
+            //    TargetEnded = true
+            //};
 
             var totalUsersAnswer = answerLogRepo.Count(ff => ff.CreatorUserId == userId && ff.DataSetId == input.DataSetId);
-            if (totalUsersAnswer >= userSpecificTarget.TargetDefinition.AnswerCount)
-                return new QuestionDto
-                {
-                    TargetEnded = true
-                };
+            if (totalUsersAnswer >= userSpecificTarget.TargetDefinition.AnswerCount) throw new UserFriendlyException($"No target has been defined.");
+            //return new QuestionDto
+            //{
+            //    TargetEnded = true
+            //};
 
             var dataSetItem = await dataSetItemRepo.GetAllIncluding(ff => ff.Label).SingleOrDefaultAsync(ff => ff.Id == input.DataSetItemId);
             if (dataSetItem == null)
@@ -150,6 +150,16 @@ namespace Fanap.DataLabeling.DataSets
             {
                 question.QuestionFileSrc = dataSet.QuestionSrc;
             }
+        }
+
+        protected async Task<string> GetItemLabel(Guid dataSetItemId)
+        {
+            var dataSetItem = await dataSetItemRepo.GetAllIncluding(ff => ff.Label).SingleOrDefaultAsync(ff => ff.Id == dataSetItemId);
+            if (dataSetItem == null)
+                throw new UserFriendlyException($"DataSetItem not found with id {dataSetItemId}");
+
+            var label = labelRepo.Get(dataSetItem.LabelId.Value);
+            return label.Name;
         }
     }
 }
