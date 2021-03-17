@@ -162,6 +162,7 @@ namespace Fanap.DataLabeling.DataSets
                 .GetAll()
                 .WhereIf(input.UserId != null, ff => ff.CreatorUserId == input.UserId.Value)
                 .WhereIf(input.DataSetId != null, ff => ff.DataSetId == input.DataSetId.Value)
+                .Where(ff => ff.CreditCalculated == input.CreditCalculated)
                 .CountAsync();
 
             return new AnswerStatisticsOutput { TotalCount = query };

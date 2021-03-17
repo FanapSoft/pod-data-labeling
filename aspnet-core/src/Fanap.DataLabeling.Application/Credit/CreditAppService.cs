@@ -121,6 +121,11 @@ namespace Fanap.DataLabeling.Credit
                 answerRepo.Update(item.Id, ff => ff.CreditCalculated = true);
             }
 
+            var userSpecificTarget = targetRepo.GetAllIncluding(ff => ff.TargetDefinition.DataSet)
+                                     .Where(ff => ff.TargetDefinition.DataSetId == input.DataSetId && ff.OwnerId == input.UserId).ToList();
+
+            userSpecificTarget.ForEach(_ => _.IsDeleted = true);
+
             CurrentUnitOfWork.SaveChanges();
 
             return ObjectMapper.Map<TransactionDto>(transaction);

@@ -59,8 +59,7 @@ namespace Fanap.DataLabeling.Targets
             var userId = AbpSession.UserId.Value;
 
             var userSpecificTarget = await Repository.GetAllIncluding(ff => ff.TargetDefinition).OrderBy(ff => ff.CreationTime)
-                .LastOrDefaultAsync(ff => ff.TargetDefinition.DataSetId == input.DataSetId && ff.OwnerId == userId);
-
+                .LastOrDefaultAsync(ff => ff.TargetDefinition.DataSetId == input.DataSetId && ff.OwnerId == userId && !ff.IsDeleted);
 
             if (userSpecificTarget == null)
                 return new TargetStatusOutput
