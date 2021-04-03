@@ -96,7 +96,8 @@ namespace Fanap.DataLabeling.DataSets
             if (dataSet.AnswerOptions == null || !dataSet.AnswerOptions.Any())
                 throw new UserFriendlyException($"DataSet doest not have its answer options configured");
 
-            var userSpecificTarget = await targetRepo.GetAllIncluding(ff => ff.TargetDefinition).OrderBy(ff => ff.CreationTime).LastOrDefaultAsync(ff => ff.TargetDefinition.DataSetId == input.DataSetId && ff.OwnerId == userId);
+            var userSpecificTarget = await targetRepo.GetAllIncluding(ff => ff.TargetDefinition).OrderBy(ff => ff.CreationTime)
+                .LastOrDefaultAsync(ff => ff.TargetDefinition.DataSetId == input.DataSetId && ff.OwnerId == userId && !ff.IsDeleted);
             if (userSpecificTarget == null) throw new UserFriendlyException($"No target has been defined.");
             //return new QuestionDto
             //{
